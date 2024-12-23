@@ -1,0 +1,134 @@
+---
+title: "Entrega grupal"
+author: "C. Tangana (DNI: 00000000-X), Rosalía (DNI: 00000000-X), ..."
+format:
+  revealjs:
+    theme: [style.scss]
+    embed-resources: true
+execute: 
+  echo: true
+---
+
+## Paquetes necesarios
+
+> Insertad aquí todos los paquetes vayáis necesitando
+
+```{r}
+rm(list = ls())
+library(tidyverse)
+```
+
+------------------------------------------------------------------------
+
+## Entrega grupal
+
+### Datos
+
+La práctica se basará en los [**archivos de datos electorales**]{.hl-yellow} que se indican a continuación, recopilando datos sobre las elecciones al Congreso de los Diputados en España desde 2008 hasta la actualidad, así como encuestas, códigos de municipios y abreviaturas
+
+```{r}
+# NO TOQUES NADA
+election_data <- read_csv(file = "./data/datos_elecciones_brutos.csv")
+cod_mun <- read_csv(file = "./data/cod_mun.csv")
+surveys <- read_csv(file = "./data/historical_surveys.csv")
+abbrev <- read_csv(file = "./data/siglas.csv")
+```
+
+------------------------------------------------------------------------
+
+## Datos
+
+-   `election_data`: archivo con las elecciones al congreso
+-   `cod_mun`: archivo con los códigos y nombres de cada municipio
+-   `abbrev`: siglas de cada partido
+-   `surveys`: encuestas electorales desde 1982.
+
+------------------------------------------------------------------------
+
+## Datos
+
+-   `surveys`: encuestas electorales desde 1982.
+    -   `type_survey`: tipo de encuesta (nacional, regional...)
+    -   `date_elec`: fecha de las futuras elecciones
+    -   `id_pollster`, `pollster`, `media`: id y nombre de la empresa encuestadora, así como medio que la encargó
+    -   `field_date_from`, `field_date_to`: fechas de inicio y fin del trabajo de la encuesta
+    -   `exit_poll`: ¿es una encuesta a pie de urna?
+    -   `size`: tamaño muestral de la encuesta
+    -   `turnout`: participación (estimación)
+
+------------------------------------------------------------------------
+
+## Nuevos datos
+
+Transformamos `cod_mun`
+
+```{r}
+cod_tidy <- cod_mun |> 
+  # Nos quedamos con los últimos 3 dígitos
+  mutate(cod_mun = str_sub(cod_mun, - 3)) |> 
+  # Eliminamos los nombres de los municipios repetidos
+  distinct(cod_mun, .keep_all = TRUE)
+```
+
+Transformamos `abbrev`
+
+```{r}
+abbrev_tidy <- abbrev |>
+  # Eliminamos los nombres de partidos repetidos
+  distinct(denominacion) |> 
+  # Renombramos las coaliciones para que tengan las mismas siglas
+  mutate(siglas = case_when(
+    str_detect(denominacion, "PARTIDO SOCIALISTA OBRERO ESPAÑOL") ~ "PSOE",
+    str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
+    str_detect(denominacion, "CIUDADANOS") ~ "CS",
+    str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
+    str_detect(denominacion, "BLOQUE NACIONALISTA GALLEGO") ~ "BNG",
+    str_detect(denominacion, "UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA") ~ "PODEMOS",
+   str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
+   str_detect(denominacion, "EH - BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
+   str_detect(denominacion, "VOX") ~ "VOX",
+   TRUE ~ "OTROS"
+   ))
+```
+
+Transformamos `election_data`.
+
+```{r}
+# Extraemos el nombre de los partidos (todos están en mayúsculas)
+cols_election <- names(election_data)[str_detect(names(election_data), 
+                                                 pattern = "[A-Z]")]
+
+election_tidy <- election_data |> 
+  pivot_longer(cols = all_of(cols_election), names_to = "partido", 
+               values_to = "votos", values_drop_na = TRUE) |> 
+  # Añadimos las siglas
+  inner_join(abbrev_tidy, by = c("partido" = "denominacion")) |> 
+  relocate(siglas, .after = partido) |> 
+  # Añadimos los nombres de los municipio
+  inner_join(cod_tidy, by = c("codigo_municipio" = "cod_mun")) |> 
+  relocate(municipio, .after = codigo_municipio)
+```
+
+Transformamos `surveys`
+
+```{r}
+# Extraemos las siglas de los partidos (todos están en mayúsculas)
+cols_surveys <- names(surveys)[str_detect(names(surveys), pattern = "[A-Z]")]
+
+# Creamos un vector con las siglas de los partidos que nos interesan
+siglas_interes <- c("PSOE", "PP", "EAJ-PNV", "BNG", "PODEMOS", "ERC", "EH-BILDU", "VOX")
+
+surveys_tidy <- surveys |> 
+  pivot_longer(cols = all_of(cols_surveys), names_to = "siglas", 
+               values_to = "votos", values_drop_na = TRUE) |> 
+  # Eliminamos los registros no deseados
+  ## Elecciones de antes de 2008
+  filter(!year(date_elec) < 2008) |> 
+  ## Encuentas a pie de urna
+  filter(!exit_poll == TRUE) |> 
+  ## Tamaño muestral inferior a 500
+  filter(!size < 500) |> 
+  ## Trabajo de campo que duró 1 día o menos
+  filter(!field_date_to - field_date_from <= 1) |> 
+  mutate(siglas = if_else(siglas %in% siglas_interes, siglas, "OTROS"))
+```
