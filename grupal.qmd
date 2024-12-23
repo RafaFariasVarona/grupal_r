@@ -132,3 +132,5 @@ surveys_tidy <- surveys |>
   filter(!field_date_to - field_date_from <= 1) |> 
   mutate(siglas = if_else(siglas %in% siglas_interes, siglas, "OTROS"))
 ```
+
+prueba para ver si cambia el archivo
