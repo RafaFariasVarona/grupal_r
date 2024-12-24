@@ -150,13 +150,13 @@ surveys_tidy <- surveys |>
   mutate(siglas = if_else(siglas %in% siglas_interes, siglas, "OTROS"))
 ```
 
-## Pregunta 1.
+## Pregunta 1
 
 ***Qué partido fue el ganador en los municipios con más de 100.000 habitantes (censo) en cada una de las elecciones?***
 
 ```{r, message=FALSE}
 #| include: false
-install.packages("mapSpain", dependencies = TRUE)
+# install.packages("mapSpain", dependencies = TRUE)
 extrafont::loadfonts()
 ```
 
@@ -258,4 +258,79 @@ ggplot(municipio_info) +
         axis.text = element_blank(),
         axis.ticks = element_blank())
 
+```
+
+# Pregunta 2
+
+**¿Qué partido fue el segundo cuando el primero fue el PSOE? ¿Y cuando el primero fue el PP?**
+
+```{r}
+# Agrupamos el mes y el año en election_tidy
+election_tidy <- election_tidy |> 
+  mutate(fecha = paste0(mes, "-", anno)) |> 
+  relocate(fecha, .after = mes)
+
+election_summary <- election_tidy |>
+  summarise(total_voto = sum(votos, na.rm = TRUE), .by = c(fecha, siglas)) |> 
+    arrange(desc(total_voto)) |> 
+    mutate(rank = row_number(), .by = fecha) |> 
+  mutate(fecha = factor(fecha, levels = c("03-2008", "11-2011", "12-2015", "06-2016", "04-2019", "11-2019")))
+
+segundo_PSOE <- election_summary |> 
+  filter(rank == 1 & siglas == "PSOE") |> 
+  inner_join(election_summary |> filter(!rank == 1), by = "fecha") |> 
+  pivot_longer(cols = c(siglas.x, siglas.y, total_voto.x, total_voto.y, rank.x, rank.y),
+               names_to = c(".value", "type"),
+               names_pattern = "(.*)\\.(.*)") |> 
+  select(!type) |> 
+  distinct() |> 
+  mutate(segundo = if_else(rank == 2, "Si", "No")) |> 
+  mutate(siglas = fct_reorder(siglas, rank), .by = fecha) |> 
+  mutate(fecha = factor(fecha, levels = c("03-2008", "11-2011", "12-2015", "06-2016", "04-2019", "11-2019")))
+
+segundo_PP <- election_summary |> 
+  filter(rank == 1 & siglas == "PP") |> 
+  inner_join(election_summary |> filter(!rank == 1), by = "fecha") |> 
+  pivot_longer(cols = c(siglas.x, siglas.y, total_voto.x, total_voto.y, rank.x, rank.y),
+               names_to = c(".value", "type"),
+               names_pattern = "(.*)\\.(.*)") |> 
+  select(!type) |> 
+  distinct() |> 
+  mutate(segundo = if_else(rank == 2, "Si", "No")) |> 
+  mutate(siglas = fct_reorder(siglas, total_voto))
+```
+
+```{r, warning = FALSE}
+ggplot(data = segundo_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank), alpha = segundo)) +
+  geom_col(position = "dodge2") +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
+  scale_y_continuous(
+    breaks = seq(0, max(segundo_PSOE$total_voto), by = 1000000), 
+    labels = scales::comma_format()) +
+  guides(alpha = "none") +
+  theme_gg +
+  theme(axis.text.x = element_text(angle = 0)) +
+  labs(title = "Distribución de los votos cuando el PSOE fue el primero",
+       x = "Fecha", y = "Total de votos", fill = "Partido")
+
+ggplot(data = segundo_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank), alpha = segundo)) +
+  geom_col(position = "dodge2") +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
+  scale_y_continuous(
+    breaks = seq(0, max(segundo_PP$total_voto), by = 1000000), 
+    labels = scales::comma_format()) +
+  guides(alpha = "none") +
+  theme_gg +
+  theme(axis.text.x = element_text(angle = 0)) +
+  labs(title = "Distribución de los votos cuando el PP fue el primero",
+       x = "Fecha", y = "Total de votos", fill = "Partido")
+```
+
+```{r}
+segundo_PSOE |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
+segundo_PP |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
 ```
