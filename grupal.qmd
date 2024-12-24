@@ -13,9 +13,23 @@ execute:
 
 > Insertad aquí todos los paquetes vayáis necesitando
 
-```{r}
+```{r, message=FALSE}
+#| include: false
 rm(list = ls())
 library(tidyverse)
+library(ggplot2)
+library(gapminder)
+library(ggthemes)
+library(plotly)
+library(ggThemeAssist)
+library(ggridges)
+library(ggtext)
+library(waffle)
+library(glue)
+library(lubridate)
+library(forcats)
+library(readr)
+library(stringr)
 ```
 
 ------------------------------------------------------------------------
@@ -27,6 +41,7 @@ library(tidyverse)
 La práctica se basará en los [**archivos de datos electorales**]{.hl-yellow} que se indican a continuación, recopilando datos sobre las elecciones al Congreso de los Diputados en España desde 2008 hasta la actualidad, así como encuestas, códigos de municipios y abreviaturas
 
 ```{r}
+#| include: false
 # NO TOQUES NADA
 election_data <- read_csv(file = "./data/datos_elecciones_brutos.csv")
 cod_mun <- read_csv(file = "./data/cod_mun.csv")
@@ -106,7 +121,9 @@ election_tidy <- election_data |>
   relocate(siglas, .after = partido) |> 
   # Añadimos los nombres de los municipio
   inner_join(cod_tidy, by = c("codigo_municipio" = "cod_mun")) |> 
-  relocate(municipio, .after = codigo_municipio)
+  relocate(municipio, .after = codigo_municipio) |> 
+  #quitar columnas que no aportan informacion 
+  select(-tipo_eleccion, -vuelta, - codigo_distrito_electoral)
 ```
 
 Transformamos `surveys`
@@ -116,7 +133,7 @@ Transformamos `surveys`
 cols_surveys <- names(surveys)[str_detect(names(surveys), pattern = "[A-Z]")]
 
 # Creamos un vector con las siglas de los partidos que nos interesan
-siglas_interes <- c("PSOE", "PP", "EAJ-PNV", "BNG", "PODEMOS", "ERC", "EH-BILDU", "VOX")
+siglas_interes <- c("PSOE", "PP", "EAJ-PNV", "BNG", "PODEMOS", "ERC", "EH-BILDU", "VOX","CS")
 
 surveys_tidy <- surveys |> 
   pivot_longer(cols = all_of(cols_surveys), names_to = "siglas", 
@@ -133,4 +150,112 @@ surveys_tidy <- surveys |>
   mutate(siglas = if_else(siglas %in% siglas_interes, siglas, "OTROS"))
 ```
 
-prueba para ver si cambia el archivo
+## Pregunta 1.
+
+***Qué partido fue el ganador en los municipios con más de 100.000 habitantes (censo) en cada una de las elecciones?***
+
+```{r, message=FALSE}
+#| include: false
+install.packages("mapSpain", dependencies = TRUE)
+extrafont::loadfonts()
+```
+
+```{r}
+municipio <- election_tidy |> 
+  filter(censo >= 100000) |> 
+  group_by(municipio, anno, mes) |> 
+  slice_max(votos, with_ties = FALSE)
+  
+```
+
+```{r}
+#creamos la paleta de colores para cada partido
+colores_partidos <- c("#d80000","#3399FF","#6fab58","#77b4de","#6D50B3","#f3c54b","#00d0b6","#74cb4c","#FF5824","#a9a9a9")
+colores_df <- data.frame( siglas = c(siglas_interes, "OTROS"), 
+                          color = colores_partidos)
+municipio <- municipio |> 
+  left_join(colores_df, by = "siglas")
+```
+
+```{r}
+theme_gg <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
+  theme(
+    axis.text = element_text(family = "Times New Roman"),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 9),
+    axis.title = element_text(size = 11),
+    axis.text.y = element_text(size = 9),
+    legend.position = "right",
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 9),
+    legend.title = element_text(size = 11),
+    legend.text = element_text(size = 9),
+    panel.border = element_blank(), 
+    axis.line = element_line(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+
+pregunta1 <- ggplot(municipio, aes(x = municipio, y = votos, fill = siglas)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~ anno + mes) +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(title = "Partido político vencedor en las elecciones por municipio",
+       subtitle = "Representación por año de las elecciones",
+       x = "Municipio",
+       y = "Votos",
+       fill = "Partido Político") +
+  theme_gg
+
+```
+
+```{r}
+plotly:: ggplotly(pregunta1)
+```
+
+### Diagrama de España
+
+Se tiene que instalar los siguientes paquetes y se necesita la información de los municipios, que se encuentra dentro de la carpeta "`Municipios_-754961474048907967`"
+
+```{r, message=FALSE}
+#| include: false
+# Instalar paquetes si no lo has hecho
+install.packages("sf")
+install.packages("rnaturalearth")
+install.packages("rnaturalearthdata")
+
+# Cargar los paquetes
+library(sf)
+library(rnaturalearth)
+library(rnaturalearthdata)
+
+```
+
+```{r}
+#| include: false
+# Obtener los datos de los países
+world <- ne_countries(scale = "medium", returnclass = "sf")
+# Filtrar los datos para obtener solo España
+spain <- world[world$name == "Spain", ]
+
+municipio_info <- st_read("Municipios_-754961474048907967/Municipios_IGN.shp")
+municipio_info <- as.data.frame(municipio_info)
+
+# Transformar a WGS 84 si es necesario (puedes omitir este paso si ya está en 4326)
+municipio_info <- st_transform(municipio_info, crs = 4326)
+```
+
+EPSG:4326 es una norma reconocida internacionalmente, lo que facilita el intercambio de datos geoespaciales entre diferentes organizaciones, instituciones y plataformas.
+
+```{r}
+# Crear el mapa de España con los municipios usando geom_sf
+ggplot(municipio_info) +
+  geom_sf(aes(fill = NAMEUNIT), color = "black", size = 0.1) +
+  coord_sf() +
+  labs(title = "Mapa de Municipios de España",
+       fill = "Municipio") +
+  theme_minimal() +
+  theme(axis.title = element_blank(),
+        axis.text = element_blank(),
+        axis.ticks = element_blank())
+
+```
