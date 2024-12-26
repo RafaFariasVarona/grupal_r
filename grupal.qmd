@@ -93,11 +93,11 @@ abbrev_tidy <- abbrev |>
   distinct(denominacion) |> 
   # Renombramos las coaliciones para que tengan las mismas siglas
   mutate(siglas = case_when(
-    str_detect(denominacion, "PARTIDO SOCIALISTA OBRERO ESPAÑOL") ~ "PSOE",
+    str_detect(denominacion, "PARTIDO SOCIALISTA") ~ "PSOE",
     str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
     str_detect(denominacion, "CIUDADANOS") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
-    str_detect(denominacion, "BLOQUE NACIONALISTA GALLEGO") ~ "BNG",
+    str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
     str_detect(denominacion, "UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA") ~ "PODEMOS",
    str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
    str_detect(denominacion, "EH - BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
@@ -114,15 +114,17 @@ cols_election <- names(election_data)[str_detect(names(election_data),
                                                  pattern = "[A-Z]")]
 
 election_tidy <- election_data |> 
-  pivot_longer(cols = all_of(cols_election), names_to = "partido", 
-               values_to = "votos", values_drop_na = TRUE) |> 
+  pivot_longer(cols = all_of(cols_election), 
+               names_to = "partido", 
+               values_to = "votos", 
+               values_drop_na = TRUE) |> 
   # Añadimos las siglas
   inner_join(abbrev_tidy, by = c("partido" = "denominacion")) |> 
   relocate(siglas, .after = partido) |> 
   # Añadimos los nombres de los municipio
   inner_join(cod_tidy, by = c("codigo_municipio" = "cod_mun")) |> 
   relocate(municipio, .after = codigo_municipio) |> 
-  #quitar columnas que no aportan informacion 
+  # Quitamos columnas que no aportan informacion 
   select(-tipo_eleccion, -vuelta, - codigo_distrito_electoral)
 ```
 
@@ -140,7 +142,7 @@ surveys_tidy <- surveys |>
                values_to = "votos", values_drop_na = TRUE) |> 
   # Eliminamos los registros no deseados
   ## Elecciones de antes de 2008
-  filter(!year(date_elec) < 2008) |> 
+  filter(year(date_elec) >= 2008) |> 
   ## Encuentas a pie de urna
   filter(!exit_poll == TRUE) |> 
   ## Tamaño muestral inferior a 500
@@ -334,3 +336,106 @@ ggplot(data = segundo_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(sigl
 segundo_PSOE |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
 segundo_PP |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
 ```
+
+# Pregunta 3
+
+**¿Cómo calibrar el error de las encuestas?**
+
+-- unificar el resultado a nivel nacional de los votos con el resultado de las necuestas
+
+```{r}
+elect_surv <-
+  right_join(
+    # primero hay que resumin la información de interés de los vosotos a nivel nacional
+    election_tidy |> 
+    select(anno, mes, codigo_municipio, censo, votos, partido, siglas, participacion_1, participacion_2) |> 
+    summarise(censo = sum(unique(censo)),
+              participacion = sum(unique(participacion_1)) + sum(unique(participacion_2)),
+              .by = c("anno", "mes")) |> 
+    right_join(election_tidy |> 
+                 summarise(votos = sum(votos),
+                 .by = c("anno", "mes", "siglas")),
+               by = c("anno", "mes")) |> 
+    mutate(porc_votos = (votos/participacion) * 100,
+           mes = as.numeric(mes)),
+    surveys_tidy |> 
+      rename(intencion = votos) |> 
+      # hay que unificar (sumando sus proporciones) la intención de voto de todos los partidos que se han denominado como OTROS
+      mutate(intencion = sum(intencion),
+              .by = c(siglas, date_elec, id_pollster, media, field_date_from, field_date_to)) |> 
+      distinct() |> 
+      mutate(mes = month(date_elec),
+             anno = year(date_elec)),
+    by = c("anno", "mes", "siglas"))
+```
+
+
+identificador de encuestas: anno, mes, media, field_date_from
+
+
+
+-- decidir cómo respresentar la intención global de voto y calcular las diferencias entre proporción estimada (surveys) y proporción real (votos)
+
+se atiende primero a la calidad de los datos de las encuestas en cuestión a si existen en todos los periodos electorales
+
+```{r}
+elect_surv |> 
+  count(media, date_elec) |> 
+  arrange(date_elec, media) |> 
+  pivot_wider(values_from = n, id_cols = media, names_from = date_elec)
+```
+
+se puede ver también que no se tiene representación de la intención de voto de todos los partidos para todos lo periodos electorales
+
+```{r}
+elect_surv |> 
+  count(siglas, date_elec) |> 
+  arrange(date_elec, siglas) |> 
+  pivot_wider(values_from = n, id_cols = siglas, names_from = date_elec)
+```
+
+
+a la vista de los resultados, se decide atender a los siguientes análisis para la estimación de la precisión de las encuestas electorales
+
+> comparación de la intención de voto global entendida como la proporción de todas las encuestas de todos los medios para cada periodo electoral
+
+```{r}
+intencion_global <-
+# primero se resume la información de cada medio 
+elect_surv |> 
+  summarise(intencion = mean(intencion),
+            .by = c("date_elec", "media", "siglas")) |> 
+# después, se extrae la media global para cada periodo electoral
+  summarise(intencion = mean(intencion),
+            .by = c("date_elec", "siglas")) |> 
+# se añade la información resumida anteriormente de los votos reales obtenidos por cada partido
+  left_join(elect_surv |> 
+              select(porc_votos, date_elec, siglas) |> 
+              distinct(),
+            by = c("date_elec", "siglas")) |> 
+# los periodos en los que no se tiene porcentaje de votos registrado, se entiende que ese fue 0
+  mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
+# por último, se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
+  mutate(diferencia = intencion - porc_votos)
+
+# se construye una representación gráfica del error para cada partdio en cada periodo
+
+ggplot(intencion_global) +
+  geom_col(aes(y = diferencia, 
+               x = date_elec, 
+               fill = siglas),
+           position = "dodge", width = 200) +
+           scale_x_date(breaks = unique(intencion_global$date_elec)) +
+  theme(axis.text.x = element_text(angle = 90))
+```
+
+
+- mismo análisis pero dando peso a cada encuesta de cada medio en función de su tamaño muestral
+
+> comparación de la precisión de los medios que tienen datos para todos los periodos electorales de manera global y para cada periodo
+
+(media de las diferecias para el comparador global)
+(diferencias año a año para lo de los periodos)
+
+> ¿las encuestas más próximas al día de las elecciones son más fiables?
+
