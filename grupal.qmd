@@ -79,10 +79,10 @@ Transformamos `cod_mun`
 
 ```{r}
 cod_tidy <- cod_mun |> 
-  # Nos quedamos con los últimos 3 dígitos
-  mutate(cod_mun = str_sub(cod_mun, - 3)) |> 
-  # Eliminamos los nombres de los municipios repetidos
-  distinct(cod_mun, .keep_all = TRUE)
+  # Separamos el codigo en ccaa, provicnia y municipio
+  separate(col = cod_mun, 
+           into = c("codigo_ccaa", "codigo_provincia", "codigo_municipio"),
+           sep = "-")
 ```
 
 Transformamos `abbrev`
@@ -121,8 +121,9 @@ election_tidy <- election_data |>
   # Añadimos las siglas
   inner_join(abbrev_tidy, by = c("partido" = "denominacion")) |> 
   relocate(siglas, .after = partido) |> 
-  # Añadimos los nombres de los municipio
-  inner_join(cod_tidy, by = c("codigo_municipio" = "cod_mun")) |> 
+  # Añadimos los nombres de los municipios
+  inner_join(cod_tidy, 
+             by = c("codigo_ccaa", "codigo_provincia", "codigo_municipio")) |> 
   relocate(municipio, .after = codigo_municipio) |> 
   # Quitamos columnas que no aportan informacion 
   select(-tipo_eleccion, -vuelta, - codigo_distrito_electoral)
@@ -369,10 +370,7 @@ elect_surv <-
     by = c("anno", "mes", "siglas"))
 ```
 
-
 identificador de encuestas: anno, mes, media, field_date_from
-
-
 
 -- decidir cómo respresentar la intención global de voto y calcular las diferencias entre proporción estimada (surveys) y proporción real (votos)
 
@@ -393,7 +391,6 @@ elect_surv |>
   arrange(date_elec, siglas) |> 
   pivot_wider(values_from = n, id_cols = siglas, names_from = date_elec)
 ```
-
 
 a la vista de los resultados, se decide atender a los siguientes análisis para la estimación de la precisión de las encuestas electorales
 
@@ -429,13 +426,10 @@ ggplot(intencion_global) +
   theme(axis.text.x = element_text(angle = 90))
 ```
 
-
-- mismo análisis pero dando peso a cada encuesta de cada medio en función de su tamaño muestral
+-   mismo análisis pero dando peso a cada encuesta de cada medio en función de su tamaño muestral
 
 > comparación de la precisión de los medios que tienen datos para todos los periodos electorales de manera global y para cada periodo
 
-(media de las diferecias para el comparador global)
-(diferencias año a año para lo de los periodos)
+(media de las diferecias para el comparador global) (diferencias año a año para lo de los periodos)
 
 > ¿las encuestas más próximas al día de las elecciones son más fiables?
-
