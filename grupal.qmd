@@ -96,7 +96,7 @@ abbrev_tidy <- abbrev |>
     siglas = case_when(
     str_detect(denominacion, "PARTIDO SOCIALISTA") ~ "PSOE",
     str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
-    str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADANIA") ~ "CS",
+    str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADAN[IÍ]A") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
     str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
     str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA)\\b") ~ "PODEMOS",
