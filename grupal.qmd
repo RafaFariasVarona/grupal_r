@@ -1,6 +1,6 @@
 ---
 title: "Entrega grupal"
-author: "C. Tangana (DNI: 00000000-X), Rosalía (DNI: 00000000-X), ..."
+author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -73,27 +73,39 @@ abbrev <- read_csv(file = "./data/siglas.csv")
 
 ------------------------------------------------------------------------
 
-## Nuevos datos
+## Depuración de los datos datos
 
-Transformamos `cod_mun`
+### Código de los municipios
+
+Separamos el código en **comunidad autónoma**, **provincia** y **municipio**
 
 ```{r}
 cod_tidy <- cod_mun |> 
-  # Separamos el codigo en ccaa, provicnia y municipio
   separate(col = cod_mun, 
            into = c("codigo_ccaa", "codigo_provincia", "codigo_municipio"),
            sep = "-")
 ```
 
-Transformamos `abbrev`
+```{r, echo = FALSE}
+cod_tidy
+```
+
+------------------------------------------------------------------------
+
+### Abreviaciones
+
+Eliminamos los nombres de los partios repetidos
 
 ```{r}
 abbrev_tidy <- abbrev |>
-  # Eliminamos los nombres de partidos repetidos
-  distinct(denominacion) |> 
-  # Renombramos las coaliciones para que tengan las mismas siglas
-  mutate(
-    siglas = case_when(
+  distinct(denominacion)
+```
+
+Y renombramos a las coaliciones para que tengan las mismas siglas
+
+```{r}
+abbrev_tidy <- abbrev_tidy |>
+  mutate(siglas = case_when(
     str_detect(denominacion, "PARTIDO SOCIALISTA") ~ "PSOE",
     str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
     str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADAN[IÍ]A") ~ "CS",
@@ -107,51 +119,108 @@ abbrev_tidy <- abbrev |>
    ))
 ```
 
-Transformamos `election_data`.
+------------------------------------------------------------------------
+
+```{r, echo = FALSE}
+abbrev_tidy
+```
+
+------------------------------------------------------------------------
+
+### Elecciones
+
+Extraemos el nombre de los partidos. Los identificamos porque todos están en mayúsculas.
 
 ```{r}
-# Extraemos el nombre de los partidos (todos están en mayúsculas)
 cols_election <- names(election_data)[str_detect(names(election_data), 
                                                  pattern = "[A-Z]")]
+```
 
+Convertimos `election_data` en tidydata.
+
+```{r}
 election_tidy <- election_data |> 
-  pivot_longer(cols = all_of(cols_election), 
-               names_to = "partido", 
-               values_to = "votos", 
-               values_drop_na = TRUE) |> 
-  # Añadimos las siglas
+  pivot_longer(cols = all_of(cols_election),  names_to = "partido", 
+               values_to = "votos",  values_drop_na = TRUE)
+```
+
+------------------------------------------------------------------------
+
+Añadimos las siglas y el nombre de los municipios
+
+```{r}
+election_tidy <- election_tidy |> 
   inner_join(abbrev_tidy, by = c("partido" = "denominacion")) |> 
   relocate(siglas, .after = partido) |> 
-  # Añadimos los nombres de los municipios
   inner_join(cod_tidy, 
-             by = c("codigo_ccaa", "codigo_provincia", "codigo_municipio")) |> 
-  relocate(municipio, .after = codigo_municipio) |> 
-  # Quitamos columnas que no aportan informacion 
+             by =  c("codigo_ccaa", "codigo_provincia", "codigo_municipio")) |> 
+  relocate(municipio, .after = codigo_municipio)
+```
+
+Agrupamos las columnas `mes` y `anno` en una nueva columna `fecha`, y eliminamos las columnas que no aportan información.
+
+```{r}
+election_tidy <- election_tidy |> 
+  mutate(fecha = paste0(mes, "-", anno)) |> 
+  relocate(fecha, .after = mes) |> 
   select(-tipo_eleccion, -vuelta, - codigo_distrito_electoral)
 ```
 
-Transformamos `surveys`
+------------------------------------------------------------------------
 
 ```{r}
-# Extraemos las siglas de los partidos (todos están en mayúsculas)
+election_tidy
+```
+
+------------------------------------------------------------------------
+
+### Encuestas
+
+Extraemos las siglas de los partidos. Las identificamos porque todas están en mayúscula
+
+```{r}
 cols_surveys <- names(surveys)[str_detect(names(surveys), pattern = "[A-Z]")]
+```
 
-# Creamos un vector con las siglas de los partidos que nos interesan
+Creamos un vector con las siglas de los partidos que nos interesan.
+
+```{r}
 siglas_interes <- c("PSOE", "PP", "EAJ-PNV", "BNG", "PODEMOS", "ERC", "EH-BILDU", "VOX","CS")
+```
 
+Convertimos `surveys` en tidydata.
+
+```{r}
 surveys_tidy <- surveys |> 
   pivot_longer(cols = all_of(cols_surveys), names_to = "siglas", 
-               values_to = "votos", values_drop_na = TRUE) |> 
-  # Eliminamos los registros no deseados
-  ## Elecciones de antes de 2008
+               values_to = "votos", values_drop_na = TRUE)
+```
+
+------------------------------------------------------------------------
+
+Eliminamos los registros no deseados
+
+-   Elecciones anteriores a 2008
+
+-   Encuestas a pie de urna
+
+-   Tamaño muestral inferior a 500
+
+-   Trabajo de campo que duró 1 día o menos
+
+```{r}
+surveys_tidy <- surveys_tidy |> 
   filter(year(date_elec) >= 2008) |> 
-  ## Encuentas a pie de urna
   filter(!exit_poll == TRUE) |> 
-  ## Tamaño muestral inferior a 500
   filter(!size < 500) |> 
-  ## Trabajo de campo que duró 1 día o menos
   filter(!field_date_to - field_date_from <= 1) |> 
   mutate(siglas = if_else(siglas %in% siglas_interes, siglas, "OTROS"))
+```
+
+------------------------------------------------------------------------
+
+```{r, echo = FALSE}
+surveys_tidy
 ```
 
 ## Pregunta 1
@@ -223,18 +292,18 @@ Se tiene que instalar los siguientes paquetes y se necesita la información de l
 ```{r, message=FALSE}
 #| include: false
 # Instalar paquetes si no lo has hecho
-install.packages("sf")
-install.packages("rnaturalearth")
-install.packages("rnaturalearthdata")
+# install.packages("sf")
+# install.packages("rnaturalearth")
+# install.packages("rnaturalearthdata")
 
 # Cargar los paquetes
-library(sf)
-library(rnaturalearth)
-library(rnaturalearthdata)
+# library(sf)
+# library(rnaturalearth)
+# library(rnaturalearthdata)
 
 ```
 
-```{r}
+```{r, eval = FALSE}
 #| include: false
 # Obtener los datos de los países
 world <- ne_countries(scale = "medium", returnclass = "sf")
@@ -250,7 +319,7 @@ municipio_info <- st_transform(municipio_info, crs = 4326)
 
 EPSG:4326 es una norma reconocida internacionalmente, lo que facilita el intercambio de datos geoespaciales entre diferentes organizaciones, instituciones y plataformas.
 
-```{r}
+```{r, eval = FALSE}
 # Crear el mapa de España con los municipios usando geom_sf
 ggplot(municipio_info) +
   geom_sf(aes(fill = NAMEUNIT), color = "black", size = 0.1) +
@@ -264,80 +333,98 @@ ggplot(municipio_info) +
 
 ```
 
-# Pregunta 2
+## Pregunta 2
 
 **¿Qué partido fue el segundo cuando el primero fue el PSOE? ¿Y cuando el primero fue el PP?**
 
-```{r}
-# Agrupamos el mes y el año en election_tidy
-election_tidy <- election_tidy |> 
-  mutate(fecha = paste0(mes, "-", anno)) |> 
-  relocate(fecha, .after = mes)
+Creamos un resumen de la suma de los votos por partido. Ordenamos los partidos en función de su posición en las elecciones.
 
+```{r}
 election_summary <- election_tidy |>
   summarise(total_voto = sum(votos, na.rm = TRUE), .by = c(fecha, siglas)) |> 
-    arrange(desc(total_voto)) |> 
-    mutate(rank = row_number(), .by = fecha) |> 
+  arrange(desc(total_voto)) |> 
+  mutate(rank = row_number(), .by = fecha) |> 
+  mutate(siglas = fct_reorder(siglas, rank)) |> 
   mutate(fecha = factor(fecha, levels = c("03-2008", "11-2011", "12-2015", "06-2016", "04-2019", "11-2019")))
-
-segundo_PSOE <- election_summary |> 
-  filter(rank == 1 & siglas == "PSOE") |> 
-  inner_join(election_summary |> filter(!rank == 1), by = "fecha") |> 
-  pivot_longer(cols = c(siglas.x, siglas.y, total_voto.x, total_voto.y, rank.x, rank.y),
-               names_to = c(".value", "type"),
-               names_pattern = "(.*)\\.(.*)") |> 
-  select(!type) |> 
-  distinct() |> 
-  mutate(segundo = if_else(rank == 2, "Si", "No")) |> 
-  mutate(siglas = fct_reorder(siglas, rank), .by = fecha) |> 
-  mutate(fecha = factor(fecha, levels = c("03-2008", "11-2011", "12-2015", "06-2016", "04-2019", "11-2019")))
-
-segundo_PP <- election_summary |> 
-  filter(rank == 1 & siglas == "PP") |> 
-  inner_join(election_summary |> filter(!rank == 1), by = "fecha") |> 
-  pivot_longer(cols = c(siglas.x, siglas.y, total_voto.x, total_voto.y, rank.x, rank.y),
-               names_to = c(".value", "type"),
-               names_pattern = "(.*)\\.(.*)") |> 
-  select(!type) |> 
-  distinct() |> 
-  mutate(segundo = if_else(rank == 2, "Si", "No")) |> 
-  mutate(siglas = fct_reorder(siglas, total_voto))
 ```
 
-```{r, warning = FALSE}
-ggplot(data = segundo_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank), alpha = segundo)) +
+Extraemos las fechas en las que el PSOE ganó las elecciones
+
+```{r}
+fecha_PSOE <- election_summary |> 
+  filter(rank == 1 & siglas == "PSOE") |>  pull(fecha)
+```
+
+Filtramos las elecciones en las que el ganador fue el PSOE.
+
+```{r}
+election_PSOE <- election_summary |> 
+  filter(fecha %in% fecha_PSOE)
+```
+
+------------------------------------------------------------------------
+
+Representamos los datos gráficamente.
+
+```{r, eval = FALSE}
+ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
   geom_col(position = "dodge2") +
   scale_fill_manual(
     values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
   scale_y_continuous(
-    breaks = seq(0, max(segundo_PSOE$total_voto), by = 1000000), 
+    breaks = seq(0, max(election_PSOE$total_voto), by = 1000000), 
+    labels = scales::comma_format()) +
+  guides(alpha = "none") +
+  theme_gg +
+  theme(axis.text.x = element_text(angle = 0)) +
+  labs(title = "Segundo cuando PSOE fue primero",
+       x = "Fecha", y = "Total de votos", fill = "Partido")
+```
+
+---
+
+```{r, echo = FALSE}
+ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
+  geom_col(position = "dodge2") +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
+  scale_y_continuous(
+    breaks = seq(0, max(election_PSOE$total_voto), by = 1000000), 
+    labels = scales::comma_format()) +
+  guides(alpha = "none") +
+  theme_gg +
+  theme(axis.text.x = element_text(angle = 0)) +
+  labs(title = "Segundo cuando PSOE fue primero",
+       x = "Fecha", y = "Total de votos", fill = "Partido")
+```
+
+------------------------------------------------------------------------
+
+Hacemos lo mismo para el PP
+
+```{r, echo = FALSE}
+fecha_PP <- election_summary |> 
+  filter(rank == 1 & siglas == "PP") |>  pull(fecha)
+election_PP <- election_summary |> 
+  filter(fecha %in% fecha_PP)
+ggplot(data = election_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
+  geom_col(position = "dodge2") +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
+  scale_y_continuous(
+    breaks = seq(0, max(election_PP$total_voto), by = 1000000), 
     labels = scales::comma_format()) +
   guides(alpha = "none") +
   theme_gg +
   theme(axis.text.x = element_text(angle = 0)) +
   labs(title = "Distribución de los votos cuando el PSOE fue el primero",
        x = "Fecha", y = "Total de votos", fill = "Partido")
-
-ggplot(data = segundo_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank), alpha = segundo)) +
-  geom_col(position = "dodge2") +
-  scale_fill_manual(
-    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
-  scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
-  scale_y_continuous(
-    breaks = seq(0, max(segundo_PP$total_voto), by = 1000000), 
-    labels = scales::comma_format()) +
-  guides(alpha = "none") +
-  theme_gg +
-  theme(axis.text.x = element_text(angle = 0)) +
-  labs(title = "Distribución de los votos cuando el PP fue el primero",
-       x = "Fecha", y = "Total de votos", fill = "Partido")
 ```
 
-```{r}
-segundo_PSOE |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
-segundo_PP |> filter(rank == 2) |> select(fecha, siglas, total_voto) |> arrange(fecha)
-```
+---
 
 # Pregunta 3
 
