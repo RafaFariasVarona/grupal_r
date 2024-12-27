@@ -92,13 +92,14 @@ abbrev_tidy <- abbrev |>
   # Eliminamos los nombres de partidos repetidos
   distinct(denominacion) |> 
   # Renombramos las coaliciones para que tengan las mismas siglas
-  mutate(siglas = case_when(
+  mutate(
+    siglas = case_when(
     str_detect(denominacion, "PARTIDO SOCIALISTA") ~ "PSOE",
     str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
     str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADANIA") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
     str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
-    str_detect(denominacion, "UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA") ~ "PODEMOS",
+    str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA)\\b") ~ "PODEMOS",
    str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
    str_detect(denominacion, "EUSKAL HERRIA BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
    str_detect(denominacion, "VOX") ~ "VOX",
