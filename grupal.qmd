@@ -95,12 +95,12 @@ abbrev_tidy <- abbrev |>
   mutate(siglas = case_when(
     str_detect(denominacion, "PARTIDO SOCIALISTA") ~ "PSOE",
     str_detect(denominacion, "PARTIDO POPULAR") ~ "PP",
-    str_detect(denominacion, "CIUDADANOS") ~ "CS",
+    str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADANIA") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
     str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
     str_detect(denominacion, "UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA") ~ "PODEMOS",
    str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
-   str_detect(denominacion, "EH - BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
+   str_detect(denominacion, "EUSKAL HERRIA BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
    str_detect(denominacion, "VOX") ~ "VOX",
    TRUE ~ "OTROS"
    ))
@@ -433,3 +433,38 @@ ggplot(intencion_global) +
 (media de las diferecias para el comparador global) (diferencias año a año para lo de los periodos)
 
 > ¿las encuestas más próximas al día de las elecciones son más fiables?
+
+# Pregunta 4
+
+**¿Cómo analizar la relación entre censo y voto? ¿Es cierto que determinados partidos ganan en las zonas rurales?**
+
+Ley 45/2007, de Desarrollo Sostenible del Medio Rural, clasifica un municipio como rural si tiene menos de 30.000 habitantes y menos de 100 habitantes por km2 (<https://www.mapa.gob.es/es/ministerio/servicios/analisis-y-prospectiva/ayp_demografiaenlapoblacionrural2020_tcm30-583987.pdf>).
+
+```{r}
+election_tidy <- election_tidy |> 
+  mutate(fecha = paste0(anno, "-", mes)) |> 
+  relocate(fecha, .after = mes)
+```
+
+Dividir municipios en 2 grupos según el censo:
+
+```{r}
+rural <-
+  election_tidy |> 
+  filter(censo < 30000)
+
+urbano <-
+  election_tidy |> 
+  filter(censo >= 30000)
+```
+
+Proporción de votos de cada partido en cada elección:
+
+```{r}
+rural |> 
+  summarise("votos" = sum(votos)/sum(votos_candidaturas),
+            .by = c(fecha, siglas)) |> 
+  ggplot() +
+  geom_point(aes(x = fecha, y = votos, color = siglas)) +
+  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas))
+```
