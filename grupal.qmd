@@ -552,7 +552,26 @@ Proporción de votos de cada partido en cada elección:
 rural |> 
   summarise("votos" = sum(votos)/sum(votos_candidaturas),
             .by = c(fecha, siglas)) |> 
+    ggplot() +
+  geom_point(aes(x = fecha, y = votos, color = siglas)) +
+  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas)) +
+  scale_color_discrete(name = "Partidos") +
+  scale_y_continuous(labels = function(y) y * 100) +
+  labs(title = "Zona rural",
+       x = "Elecciones",
+       y = "% votos") +
+  theme_minimal()
+
+urbano |> 
+  summarise("votos" = sum(votos)/sum(votos_candidaturas),
+            .by = c(fecha, siglas)) |> 
   ggplot() +
   geom_point(aes(x = fecha, y = votos, color = siglas)) +
-  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas))
+  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas)) +
+  scale_color_discrete(name = "Partidos") +
+  scale_y_continuous(labels = function(y) y * 100) +
+  labs(title = "Zona urbana",
+       x = "Elecciones",
+       y = "% votos") +
+  theme_minimal()
 ```
