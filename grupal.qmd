@@ -1,6 +1,6 @@
 ---
 title: "Entrega grupal"
-author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
+author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -30,6 +30,7 @@ library(lubridate)
 library(forcats)
 library(readr)
 library(stringr)
+extrafont::loadfonts()
 ```
 
 ------------------------------------------------------------------------
@@ -223,17 +224,17 @@ surveys_tidy <- surveys_tidy |>
 surveys_tidy
 ```
 
+------------------------------------------------------------------------
+
 ## Pregunta 1
 
 ***Qué partido fue el ganador en los municipios con más de 100.000 habitantes (censo) en cada una de las elecciones?***
 
-```{r, message=FALSE}
-#| include: false
-# install.packages("mapSpain", dependencies = TRUE)
-extrafont::loadfonts()
-```
+------------------------------------------------------------------------
 
-```{r}
+Filtramos los datos para quedarnos con los que cumplen estas características
+
+```{r, attr.source='.numberLines', attr.source.lines="235,236,237"}
 municipio <- election_tidy |> 
   filter(censo >= 100000) |> 
   group_by(municipio, anno, mes) |> 
@@ -241,7 +242,11 @@ municipio <- election_tidy |>
   
 ```
 
-```{r}
+------------------------------------------------------------------------
+
+Tabla filtrada
+
+```{r, echo=FALSE}
 #creamos la paleta de colores para cada partido
 colores_partidos <- c("#d80000","#3399FF","#6fab58","#77b4de","#6D50B3","#f3c54b","#00d0b6","#74cb4c","#FF5824","#a9a9a9")
 colores_df <- data.frame( siglas = c(siglas_interes, "OTROS"), 
@@ -250,7 +255,15 @@ municipio <- municipio |>
   left_join(colores_df, by = "siglas")
 ```
 
-```{r}
+```{r, echo=FALSE}
+municipio
+```
+
+------------------------------------------------------------------------
+
+Realizamos una representación de los datos
+
+```{r, echo=FALSE}
 theme_gg <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
   theme(
     axis.text = element_text(family = "Times New Roman"),
@@ -270,6 +283,7 @@ theme_gg <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
 pregunta1 <- ggplot(municipio, aes(x = municipio, y = votos, fill = siglas)) +
   geom_bar(stat = "identity", position = "dodge") +
   facet_wrap(~ anno + mes) +
+  scale_y_continuous(labels = scales::comma_format()) + 
   scale_fill_manual(values = setNames(colores_partidos, 
                                       c(siglas_interes, "OTROS"))) +
   labs(title = "Partido político vencedor en las elecciones por municipio",
@@ -281,55 +295,53 @@ pregunta1 <- ggplot(municipio, aes(x = municipio, y = votos, fill = siglas)) +
 
 ```
 
-```{r}
+```{r, echo=FALSE}
 plotly:: ggplotly(pregunta1)
 ```
 
-### Diagrama de España
+## Pregunta 1 - opción 2
 
-Se tiene que instalar los siguientes paquetes y se necesita la información de los municipios, que se encuentra dentro de la carpeta "`Municipios_-754961474048907967`"
+Hacer un gráfico independiente para cada año, para que se visualice mejor los resultados.
 
-```{r, message=FALSE}
-#| include: false
-# Instalar paquetes si no lo has hecho
-# install.packages("sf")
-# install.packages("rnaturalearth")
-# install.packages("rnaturalearthdata")
+```{r}
+# Definir la función para generar el gráfico
+representar_elecciones <- function(a, m) {
+  # Filtrar los datos para la elección específica
+  datos <- municipio |> 
+    filter(anno == a & mes == m)
+  
+  print(datos)
+  # Crear el gráfico con ggplot2
+  p <- ggplot(datos, aes(x = municipio, y = votos, fill = siglas)) +
+    geom_bar(stat = "identity", position = "dodge") +
+    scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+    labs(title = paste("Partido político vencedor en las elecciones de", a, "-", m, "por municipio"),
+         x = "Municipio",
+         y = "Votos",
+         fill = "Partido Político") +
+    theme_gg
+  
+  # Convertir el gráfico a un gráfico interactivo con plotly
+  p_interactivo <- ggplotly(p)
+  
+  return(p_interactivo)
+}
 
-# Cargar los paquetes
-# library(sf)
-# library(rnaturalearth)
-# library(rnaturalearthdata)
+# Crear gráficos para cada combinación de año y mes
+grafico_2008 <- representar_elecciones(2008, "03")
+grafico_2011 <- representar_elecciones(2011, "11")
+grafico_2015 <- representar_elecciones(2015, "12")
+grafico_2016 <- representar_elecciones(2016, "06")
+grafico_2019_04 <- representar_elecciones(2019, "04")
+grafico_2019_11 <- representar_elecciones(2019, "11")
 
-```
-
-```{r, eval = FALSE}
-#| include: false
-# Obtener los datos de los países
-world <- ne_countries(scale = "medium", returnclass = "sf")
-# Filtrar los datos para obtener solo España
-spain <- world[world$name == "Spain", ]
-
-municipio_info <- st_read("Municipios_-754961474048907967/Municipios_IGN.shp")
-municipio_info <- as.data.frame(municipio_info)
-
-# Transformar a WGS 84 si es necesario (puedes omitir este paso si ya está en 4326)
-municipio_info <- st_transform(municipio_info, crs = 4326)
-```
-
-EPSG:4326 es una norma reconocida internacionalmente, lo que facilita el intercambio de datos geoespaciales entre diferentes organizaciones, instituciones y plataformas.
-
-```{r, eval = FALSE}
-# Crear el mapa de España con los municipios usando geom_sf
-ggplot(municipio_info) +
-  geom_sf(aes(fill = NAMEUNIT), color = "black", size = 0.1) +
-  coord_sf() +
-  labs(title = "Mapa de Municipios de España",
-       fill = "Municipio") +
-  theme_minimal() +
-  theme(axis.title = element_blank(),
-        axis.text = element_blank(),
-        axis.ticks = element_blank())
+# Mostrar los gráficos interactivos
+grafico_2008
+grafico_2011
+grafico_2015
+grafico_2016
+grafico_2019_04
+grafico_2019_11
 
 ```
 
@@ -382,7 +394,7 @@ ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(s
        x = "Fecha", y = "Total de votos", fill = "Partido")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
@@ -424,13 +436,13 @@ ggplot(data = election_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(sig
        x = "Fecha", y = "Total de votos", fill = "Partido")
 ```
 
----
+------------------------------------------------------------------------
 
 # Pregunta 3
 
 **¿Cómo calibrar el error de las encuestas?**
 
--- unificar el resultado a nivel nacional de los votos con el resultado de las necuestas
+-- unificar el resultado a nivel nacional de los votos con el resultado de las encuestas
 
 ```{r}
 elect_surv <-
