@@ -1,10 +1,7 @@
 ---
 title: "Entrega grupal"
-<<<<<<< HEAD
 author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel González Aramburu (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
-=======
 author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
->>>>>>> 6a5b621992c6c70242dc2deb30656b3e0d64e5b1
 format:
   revealjs:
     theme: [style.scss]
@@ -34,12 +31,9 @@ library(lubridate)
 library(forcats)
 library(readr)
 library(stringr)
-<<<<<<< HEAD
 library(plotly)
 library(MetBrewer)
-=======
 extrafont::loadfonts()
->>>>>>> 6a5b621992c6c70242dc2deb30656b3e0d64e5b1
 ```
 
 ------------------------------------------------------------------------
