@@ -1,6 +1,6 @@
 ---
 title: "Entrega grupal"
-author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
+author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel González Aramburu (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -30,6 +30,8 @@ library(lubridate)
 library(forcats)
 library(readr)
 library(stringr)
+library(plotly)
+library(MetBrewer)
 ```
 
 ------------------------------------------------------------------------
@@ -111,7 +113,7 @@ abbrev_tidy <- abbrev_tidy |>
     str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADAN[IÍ]A") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
     str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
-    str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA)\\b") ~ "PODEMOS",
+    str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA|IZQUIERDA UNIDA)\\b") ~ "PODEMOS",
    str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
    str_detect(denominacion, "EUSKAL HERRIA BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
    str_detect(denominacion, "VOX") ~ "VOX",
@@ -243,6 +245,7 @@ municipio <- election_tidy |>
 
 ```{r}
 #creamos la paleta de colores para cada partido
+colores_partidos2 <- c("#f7b2b2","#99c2ff","#a5d8a3","#aed5f0","#9e86d4","#f8e1a1","#76e1d7","#a9e29a","#ff9f80","#d3d3d3")
 colores_partidos <- c("#d80000","#3399FF","#6fab58","#77b4de","#6D50B3","#f3c54b","#00d0b6","#74cb4c","#FF5824","#a9a9a9")
 colores_df <- data.frame( siglas = c(siglas_interes, "OTROS"), 
                           color = colores_partidos)
@@ -482,7 +485,7 @@ elect_surv |>
 
 a la vista de los resultados, se decide atender a los siguientes análisis para la estimación de la precisión de las encuestas electorales
 
-> comparación de la intención de voto global entendida como la proporción de todas las encuestas de todos los medios para cada periodo electoral
+- visualixación de la estiamción sobre la realidad
 
 ```{r}
 intencion_global <-
@@ -501,26 +504,239 @@ elect_surv |>
 # los periodos en los que no se tiene porcentaje de votos registrado, se entiende que ese fue 0
   mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
 # por último, se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
-  mutate(diferencia = intencion - porc_votos)
-
-# se construye una representación gráfica del error para cada partdio en cada periodo
-
-ggplot(intencion_global) +
-  geom_col(aes(y = diferencia, 
-               x = date_elec, 
-               fill = siglas),
-           position = "dodge", width = 200) +
-           scale_x_date(breaks = unique(intencion_global$date_elec)) +
-  theme(axis.text.x = element_text(angle = 90))
+  mutate(diferencia = intencion - porc_votos) |> 
+# se modifica el nombre de cada periodo para que quede más elegante
+  mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
 ```
 
--   mismo análisis pero dando peso a cada encuesta de cada medio en función de su tamaño muestral
+
+```{r}
+ggplot(intencion_global) + 
+  geom_col(aes(y = intencion, 
+               x = siglas,
+               fill = siglas),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.6) + 
+  scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  facet_wrap(~periodo_electoral,
+            scales = "free") +
+  geom_col(aes(y = porc_votos, 
+               x = siglas,
+               fill = "grey"),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.5)  +
+  facet_wrap(~periodo_electoral,
+            scales = "free") + 
+  labs(title = "Porcentage de intención de voto estimada VS Porcentage de votos reales (sobreado)",
+       fill = "Partidos",
+       x = "Periodo electoral",
+       y = "Porcentage")+
+  theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+> comparación de la intención de voto global entendida como la proporción de todas las encuestas de todos los medios para cada periodo electoral
+
+```{r}
+# se construye una representación gráfica del error para cada partdio en cada periodo
+
+grafico1 <-
+  ggplot(intencion_global) + 
+           # group_by(date_elec) |> 
+           # mutate(siglas = reorder_within(x = siglas, by = diferencia, within = as.character(date_elec))) |> 
+           # ungroup()
+  # # crear un sombreado por detrás para diferencias cada periodo
+  # geom_rect(data = filter(intencion_global|> 
+  #                           mutate(grupo = case_when(date_elec == "2008-03-09" ~ 1, 
+  #                                                    date_elec == "2011-11-20" ~ 0,
+  #                                                    date_elec == "2015-12-20" ~ 1,  
+  #                                                    date_elec == "2016-06-26" ~ 0, 
+  #                                                    date_elec == "2019-04-28" ~ 1, 
+  #                                                    date_elec == "2019-11-10" ~ 0,
+  #                                                    TRUE ~ NA)), 
+  #                         grupo == 1),  # Solo fechas alternas
+  #           aes(xmin = as.character(date_elec[1]),
+  #               xmax = as.character(date_elec[length(intencion_global$date_elec)]),
+  #               ymin = -Inf, ymax = Inf),
+  #           fill = "gray90", alpha = 0.5) +
+  geom_col(aes(y = diferencia, 
+               x = as.character(periodo_electoral),
+               fill = siglas),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.7) + # , width = 200
+           #scale_x_date(breaks = unique(intencion_global$date_elec)) +
+  #theme(axis.text.x = element_text(angle = 90)) +
+  scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  facet_wrap(~periodo_electoral,
+            scales = "free") + 
+  labs(title = "Diferencia entre intención de voto según encuestas y porcentage de votos reales",
+       fill = "Partidos",
+       x = "Periodo electoral",
+       y = "Diferencia") +
+  theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank()) 
+
+grafico1
+
+#plotly::ggplotly(grafico1)
+```
+
+PARA VER SI HAY UN MEDIO O UNA EMPRESA QUE SEA MÁS PRECISA QUE OTRA
 
 > comparación de la precisión de los medios que tienen datos para todos los periodos electorales de manera global y para cada periodo
 
-(media de las diferecias para el comparador global) (diferencias año a año para lo de los periodos)
+```{r}
+# seleccionar los medios que tienen información de todos los periodos electorales
+medios_completos <-
+  elect_surv |> 
+  count(media, date_elec) |> 
+  arrange(date_elec, media) |> 
+  pivot_wider(values_from = n, id_cols = media, names_from = date_elec) |> 
+  drop_na() |> 
+  select(media) |> 
+  left_join(elect_surv, by = "media") |> 
+  summarise(intencion = mean(intencion),
+            .by = c("date_elec", "media", "siglas")) |> 
+# se añade la información resumida anteriormente de los votos reales obtenidos por cada partido
+  left_join(elect_surv |> 
+              select(porc_votos, date_elec, siglas) |> 
+              distinct(),
+            by = c("date_elec", "siglas")) |> 
+# los periodos en los que no se tiene porcentaje de votos registrado, se entiende que ese fue 0
+  mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
+# se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
+  mutate(diferencia = intencion - porc_votos) |> 
+# se calcula la diferencia entre intención y porcentage de votos media de cada medio con la diferencia calculada 
+  summarise(diferencia = mean(diferencia), .by = c("media", "date_elec")) |> 
+# se modifica el nombre de cada periodo para que quede más elegante
+  mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
+```
 
-> ¿las encuestas más próximas al día de las elecciones son más fiables?
+```{r}
+# se visualiza
+ggplot(medios_completos) + 
+  geom_col(aes(y = diferencia, 
+               x = media,
+               fill = media),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.6) + 
+  scale_fill_met_d("Veronese") +
+  facet_wrap(~periodo_electoral,
+            scales = "free") +
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada medio de comunicación",
+       fill = "Medio",
+       x = "Periodo electoral",
+       y = "Diferencia media")+
+  theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+> comparación de la precisión de las empresas encuestadoras que tienen datos para todos los periodos electorales de manera global y para cada periodo
+
+```{r}
+# seleccionar los medios que tienen información de todos los periodos electorales
+empresas_completos <-
+  elect_surv |> 
+  count(pollster, date_elec) |> 
+  arrange(date_elec, pollster) |> 
+  pivot_wider(values_from = n, id_cols = pollster, names_from = date_elec) |> 
+  drop_na() |> 
+  select(pollster) |> 
+  left_join(elect_surv, by = "pollster") |> 
+  summarise(intencion = mean(intencion),
+            .by = c("date_elec", "pollster", "siglas")) |> 
+# se añade la información resumida anteriormente de los votos reales obtenidos por cada partido
+  left_join(elect_surv |> 
+              select(porc_votos, date_elec, siglas) |> 
+              distinct(),
+            by = c("date_elec", "siglas")) |> 
+# los periodos en los que no se tiene porcentaje de votos registrado, se entiende que ese fue 0
+  mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
+# se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
+  mutate(diferencia = intencion - porc_votos) |> 
+# se calcula la diferencia entre intención y porcentage de votos media de cada medio con la diferencia calculada 
+  summarise(diferencia = mean(diferencia), .by = c("pollster", "date_elec")) |> 
+# se modifica el nombre de cada periodo para que quede más elegante
+  mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
+```
+
+```{r}
+# se visualiza
+ggplot(empresas_completos) + 
+  geom_col(aes(y = diferencia, 
+               x = pollster,
+               fill = pollster),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.6) +
+  scale_fill_met_d("Veronese") +
+  facet_wrap(~periodo_electoral,
+            scales = "free") +
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada empresa de encuestas",
+       fill = "Empresa",
+       x = "Periodo electoral",
+       y = "Diferencia media")+
+  theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.ticks.x = element_blank())
+```
+
+> viualizar si existe algún tipo de preferencia de los medios principales por algún partido en concreto
+
+```{r}
+# seleccionar los medios que tienen información de todos los periodos electorales
+medios_completos_2 <-
+  elect_surv |> 
+  count(media, date_elec) |> 
+  arrange(date_elec, media) |> 
+  pivot_wider(values_from = n, id_cols = media, names_from = date_elec) |> 
+  drop_na() |> 
+  select(media) |> 
+  left_join(elect_surv, by = "media") |> 
+  summarise(intencion = mean(intencion),
+            .by = c("date_elec", "media", "siglas")) |> 
+# se añade la información resumida anteriormente de los votos reales obtenidos por cada partido
+  left_join(elect_surv |> 
+              select(porc_votos, date_elec, siglas) |> 
+              distinct(),
+            by = c("date_elec", "siglas")) |> 
+# los periodos en los que no se tiene porcentaje de votos registrado, se entiende que ese fue 0
+  mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
+# se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
+  mutate(diferencia = intencion - porc_votos) |> 
+# se modifica el nombre de cada periodo para que quede más elegante
+  mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec)) |> 
+# se seleccionan los partidos mayormente representativos en toda españa  
+  filter(siglas %in% c("PP", "PSOE", "PODEMOS", "VOX", "CS"))
+```
+
+```{r}
+# se visualiza
+ggplot(medios_completos_2) + 
+  geom_col(aes(y = intencion, 
+               x = periodo_electoral,
+               fill = siglas),
+           position = position_dodge(width = 0.9),
+           width = 1,
+           alpha = 0.6) +
+  scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  facet_wrap(~media,
+            scales = "free") +
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada empresa de encuestas",
+       fill = "Partido",
+       x = "Periodo electoral",
+       y = "Diferencia media")+
+  theme_gg +
+  theme()
+```
+
 
 # Pregunta 4
 
