@@ -161,6 +161,7 @@ print(surveys_tidy,n = 4)
 ------------------------------------------------------------------------
 
 ```{r,include=TRUE}
+#| code-fold: true
 municipio <- election_tidy |> 
   filter(censo >= 100000) |> 
   group_by(municipio, anno, mes) |> 
