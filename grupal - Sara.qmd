@@ -171,8 +171,8 @@ municipio <- election_tidy |>
 ```{r}
 #| include: false
 #creamos la paleta de colores para cada partido
-colores_partidos <- c("#d80000","#3399FF","#6fab58","#77b4de","#6D50B3","#f3c54b","#00d0b6","#74cb4c","#FF5824","#a9a9a9")
-colores_df <- data.frame( siglas = c(siglas_interes, "OTROS"), 
+colores_partidos <- c("#d80000","#3399FF","#6fab58","#77b4de","#6D50B3","#f3c54b","#00d0b6","#74cb4c","#FF5824","#a9a9a9","white")
+colores_df <- data.frame( siglas = c(siglas_interes, "OTROS",NA), 
                           color = colores_partidos)
 
 #se incorpora esa información a la nueva tabla
@@ -258,8 +258,13 @@ Line <- esp_get_can_provinces()
 #  theme_linedraw()
 
 
-mapa_elecciones <- 
-  election_tidy |> 
+# Asignar colores a los municipios según el censo y las siglas
+mapa_elecciones <- election_tidy |>
+  mutate(siglas = ifelse(!siglas %in% siglas_interes, "OTROS", siglas),
+         color = ifelse(censo >= 100000, colores_df$color[match(siglas, colores_df$siglas)], "white"))
+
+# Continuar con el resto del código
+mapa_elecciones <- mapa_elecciones |>   
   mutate(periodo_electoral = case_when(fecha == "03-2008" ~ "Marzo 2008",
                                        fecha == "11-2011" ~ "Noviembre 2011",
                                        fecha == "12-2015" ~ "Diciembre 2015", 
@@ -273,8 +278,10 @@ mapa_elecciones <-
                                                    fecha == "12-2015" ~ "Diciembre 2015", 
                                                    fecha == "06-2016" ~ "Junio 2016", 
                                                    fecha == "04-2019" ~ "Abril 2019", 
-                                                   fecha == "11-2019" ~ "Noviembre 2019")) |> 
-              select("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos", "siglas"),
+                                                   fecha == "11-2019" ~ "Noviembre 2019"),
+                     siglas = ifelse(!siglas %in% siglas_interes, "OTROS", siglas),
+                     color = ifelse(censo >= 100000, colores_df$color[match(siglas, colores_df$siglas)], "white")) |> 
+              select("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos", "siglas", "color"),
             by = c("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos")) |> 
   right_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
   
@@ -297,12 +304,12 @@ grafico_2008
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Marzo 2008")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
   labs(fill = "Partido Político")
 ```
 
@@ -323,14 +330,13 @@ grafico_2011
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2011")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
-  labs(
-    fill = "Partido Político")
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
+  labs(fill = "Partido Político")
 
 ```
 
@@ -351,14 +357,13 @@ grafico_2015
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Diciembre 2015")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
-  labs(
-    fill = "Partido Político")
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
+  labs(fill = "Partido Político")
 
 ```
 
@@ -379,14 +384,13 @@ grafico_2016
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Junio 2016")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
-  labs(
-    fill = "Partido Político")
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
+  labs(fill = "Partido Político")
 
 ```
 
@@ -407,14 +411,14 @@ grafico_2019_04
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Abril 2019")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
-  labs(
-    fill = "Partido Político")
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
+  labs(fill = "Partido Político")
+
 
 ```
 
@@ -435,14 +439,13 @@ grafico_2019_11
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2019")) +
   geom_sf(aes(geometry = geometry, 
-              fill = siglas)) +
+              fill = color)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_gg_2 +
-  scale_fill_manual(values = setNames(colores_partidos, 
-                                      c(siglas_interes, "OTROS"))) +
-  labs(
-    fill = "Partido Político")
+  scale_fill_identity(guide = "legend", 
+                      labels = setNames(colores_df$siglas, colores_df$color)) +
+  labs(fill = "Partido Político")
 
 ```
 
