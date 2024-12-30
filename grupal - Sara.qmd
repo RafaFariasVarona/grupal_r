@@ -33,6 +33,8 @@ library(forcats)
 library(readr)
 library(stringr)
 library(MetBrewer)
+library(mapSpain)
+library(sf)
 extrafont::loadfonts()
 ```
 
@@ -158,7 +160,7 @@ print(surveys_tidy,n = 4)
 
 ------------------------------------------------------------------------
 
-```{r}
+```{r,include=TRUE}
 municipio <- election_tidy |> 
   filter(censo >= 100000) |> 
   group_by(municipio, anno, mes) |> 
@@ -181,19 +183,38 @@ municipio <- municipio |>
 theme_gg <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
   theme(
     axis.text = element_text(family = "Times New Roman", face = "bold"),
-    axis.text.x = element_text(angle = 90, hjust = 1, size = 9,face = "bold"),
-    axis.title = element_text(size = 11,face = "bold"),
-    axis.text.y = element_text(size = 9,face = "bold"),
+    axis.text.x = element_text(angle = 90, hjust = 1, size = 14,face = "bold"),
+    axis.title = element_text(size = 15,face = "bold"),
+    axis.text.y = element_text(size = 14,face = "bold"),
     legend.position = "right",
     plot.title = element_text(face = "bold"),
     plot.subtitle = element_text(size = 9),
-    legend.title = element_text(size = 11),
-    legend.text = element_text(size = 9),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 13),
     panel.border = element_blank(), 
     axis.line = element_line(), 
     panel.grid.major = element_blank(),
     panel.grid.minor = element_blank())
 
+#variación del tema
+theme_gg_2 <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
+  theme(
+    axis.text = element_text(family = "Times New Roman", face = "bold"),
+    axis.text.x = element_text(size = 14,face = "bold"),
+    axis.title = element_text(size = 15,face = "bold"),
+    axis.text.y = element_text(size = 14,face = "bold"),
+    legend.position = "right",
+    plot.title = element_text(face = "bold"),
+    plot.subtitle = element_text(size = 9),
+    legend.title = element_text(size = 15),
+    legend.text = element_text(size = 13),
+    panel.border = element_blank(), 
+    axis.line = element_line(), 
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank())
+```
+
+```{r, echo=FALSE, include=FALSE}
 # Definir la función para generar el gráfico
 representar_elecciones <- function(a, m) {
   # Filtrar los datos para la elección específica
@@ -208,10 +229,7 @@ representar_elecciones <- function(a, m) {
     scale_y_continuous(labels = scales::comma_format()) +
     scale_fill_manual(values = setNames(colores_partidos, 
                                         c(siglas_interes, "OTROS"))) +
-    labs(
-      title = paste("Partido político vencedor en las elecciones de",
-                    a, "-", m, "por municipio"),
-         x = "Municipio",
+    labs(x = "Municipio",
          y = "Votos",
          fill = "Partido Político") +
     theme_gg
@@ -228,56 +246,204 @@ grafico_2019_04 <- representar_elecciones(2019, "04")
 grafico_2019_11 <- representar_elecciones(2019, "11")
 ```
 
+```{r, echo=FALSE, include=FALSE}
+munips <- esp_get_munic()
+Box <- esp_get_can_box()
+Line <- esp_get_can_provinces()
+
+#ggplot(munips) +
+#  geom_sf() +
+#  geom_sf(data = Box) +
+#  geom_sf(data = Line) +
+#  theme_linedraw()
+
+
+mapa_elecciones <- 
+  election_tidy |> 
+  mutate(periodo_electoral = case_when(fecha == "03-2008" ~ "Marzo 2008",
+                                       fecha == "11-2011" ~ "Noviembre 2011",
+                                       fecha == "12-2015" ~ "Diciembre 2015", 
+                                       fecha == "06-2016" ~ "Junio 2016", 
+                                       fecha == "04-2019" ~ "Abril 2019", 
+                                       fecha == "11-2019" ~ "Noviembre 2019")) |> 
+  summarise(votos = max(votos), .by = c("periodo_electoral", "codigo_municipio", "codigo_provincia")) |> 
+  left_join(election_tidy |> 
+              mutate(periodo_electoral = case_when(fecha == "03-2008" ~ "Marzo 2008",
+                                                   fecha == "11-2011" ~ "Noviembre 2011",
+                                                   fecha == "12-2015" ~ "Diciembre 2015", 
+                                                   fecha == "06-2016" ~ "Junio 2016", 
+                                                   fecha == "04-2019" ~ "Abril 2019", 
+                                                   fecha == "11-2019" ~ "Noviembre 2019")) |> 
+              select("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos", "siglas"),
+            by = c("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos")) |> 
+  right_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
+  
+```
+
+. . . 
+
+Partido político vencedor en las elecciones de Marzo 2008 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2008
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Marzo 2008")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(fill = "Partido Político")
 ```
 
 ------------------------------------------------------------------------
 
+Partido político vencedor en las elecciones de Noviembre 2011 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2011
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2011")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(
+    fill = "Partido Político")
+
 ```
 
 ------------------------------------------------------------------------
 
+Partido político vencedor en las elecciones de Diciembre 2015 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2015
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Diciembre 2015")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(
+    fill = "Partido Político")
+
 ```
 
 ------------------------------------------------------------------------
 
+Partido político vencedor en las elecciones de Junio 2016 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2016
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Junio 2016")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(
+    fill = "Partido Político")
+
 ```
 
 ------------------------------------------------------------------------
 
+Partido político vencedor en las elecciones de Abril 2019 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2019_04
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Abril 2019")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(
+    fill = "Partido Político")
+
 ```
 
 ------------------------------------------------------------------------
 
+Partido político vencedor en las elecciones de Noviembre 2019 por municipio
+
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 6
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
 
 grafico_2019_11
+
+ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2019")) +
+  geom_sf(aes(geometry = geometry, 
+              fill = siglas)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_manual(values = setNames(colores_partidos, 
+                                      c(siglas_interes, "OTROS"))) +
+  labs(
+    fill = "Partido Político")
+
 ```
 
 ## ¿Qué partido fue el segundo cuando el primero fue el PSOE? ¿Y cuando el primero fue el PP? {.center background-image="gradiente.jpg"}
@@ -729,24 +895,6 @@ rural <-
 urbano <-
   election_tidy |> 
   filter(censo >= 30000)
-```
-
-```{r, include=FALSE}
-theme_gg_2 <- theme_minimal(base_size = 14, base_family = "Times New Roman") +
-  theme(
-    axis.text = element_text(family = "Times New Roman", face = "bold"),
-    axis.text.x = element_text(size = 9,face = "bold"),
-    axis.title = element_text(size = 11,face = "bold"),
-    axis.text.y = element_text(size = 9,face = "bold"),
-    legend.position = "right",
-    plot.title = element_text(face = "bold"),
-    plot.subtitle = element_text(size = 9),
-    legend.title = element_text(size = 11),
-    legend.text = element_text(size = 9),
-    panel.border = element_blank(), 
-    axis.line = element_line(), 
-    panel.grid.major = element_blank(),
-    panel.grid.minor = element_blank())
 ```
 
 Proporción de votos de cada partido en cada elección en [**zonas rurales**]{style="color:darkgreen;"}
