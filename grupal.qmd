@@ -1,7 +1,6 @@
 ---
 title: "Entrega grupal"
 author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 00000000-X), Manuel González Aramburu (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
-author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -498,7 +497,7 @@ elect_surv |>
 
 a la vista de los resultados, se decide atender a los siguientes análisis para la estimación de la precisión de las encuestas electorales
 
-- visualixación de la estiamción sobre la realidad
+-   visualixación de la estiamción sobre la realidad
 
 ```{r}
 intencion_global <-
@@ -521,7 +520,6 @@ elect_surv |>
 # se modifica el nombre de cada periodo para que quede más elegante
   mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
 ```
-
 
 ```{r}
 ggplot(intencion_global) + 
@@ -750,7 +748,6 @@ ggplot(medios_completos_2) +
   theme()
 ```
 
-
 # Pregunta 4
 
 **¿Cómo analizar la relación entre censo y voto? ¿Es cierto que determinados partidos ganan en las zonas rurales?**
@@ -803,4 +800,43 @@ urbano |>
        x = "Elecciones",
        y = "% votos") +
   theme_minimal()
+```
+
+## Pregunta extra 1
+
+**¿Qué partidos ganan en los municipios con más y menos participación?**
+
+```{r}
+# Calculamos la proporcion de participacion
+election_participacion <- election_tidy |> 
+  mutate(votos_totales = votos_blancos + votos_nulos + votos_candidaturas) |> 
+  relocate(votos_totales, .after = censo) |> 
+  mutate(proporcion = votos_totales / censo) |> 
+  relocate(proporcion, .after = votos_totales)
+
+menor_participacion <- election_participacion |> 
+  filter(proporcion <= mean(election_participacion$proporcion) - 3 * sd(election_participacion$proporcion)) |> 
+  slice_max(votos, by = c(fecha, municipio))
+
+mayor_participacion <- election_participacion |> 
+  filter(proporcion >= mean(election_participacion$proporcion) + 3 * sd(election_participacion$proporcion))|> 
+  slice_max(votos, by = c(fecha, municipio))
+
+ggplot(data = menor_participacion, aes(x = siglas, fill = siglas)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  theme_gg +
+  labs(title = "Ganadores en municipios con menor participación",
+       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       caption = "247 municipios")
+
+ggplot(data = mayor_participacion, aes(x = siglas, fill = siglas)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  theme_gg +
+  labs(title = "Ganadores en municipios con mayor participación",
+       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       caption = "103 municipios")
 ```
