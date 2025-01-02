@@ -754,15 +754,35 @@ ggplot(medios_completos_2) +
 
 Ley 45/2007, de Desarrollo Sostenible del Medio Rural, clasifica un municipio como rural si tiene menos de 30.000 habitantes y menos de 100 habitantes por km2 (<https://www.mapa.gob.es/es/ministerio/servicios/analisis-y-prospectiva/ayp_demografiaenlapoblacionrural2020_tcm30-583987.pdf>).
 
+Calcular densidad poblacional. Datos de superficie (km2) de municipios: <https://ssweb.seap.minhap.es/REL/frontend/inicio/index>
+
 ```{r}
-election_tidy <- election_tidy |> 
-  mutate(fecha = paste0(anno, "-", mes)) |> 
-  relocate(fecha, .after = mes)
+superficie <- read_excel("data/municipios_superficie.xls")
+
+superficie <-
+  superficie |> 
+  select(DENOMINACION, SUPERFICIE)
+
+election_tidy2 <-
+  election_tidy |> 
+  inner_join(superficie, by = c("municipio" = "DENOMINACION"))
+
+election_tidy2 <-
+  election_tidy2 |> 
+  mutate(densidad = censo/SUPERFICIE)
 ```
 
 Dividir municipios en 2 grupos según el censo:
 
 ```{r}
+rural2 <-
+  election_tidy2 |> 
+  filter(censo < 30000, densidad < 100)
+
+urbano2 <-
+  election_tidy2 |> 
+  filter(censo >= 30000, densidad >= 100)
+
 rural <-
   election_tidy |> 
   filter(censo < 30000)
@@ -775,31 +795,48 @@ urbano <-
 Proporción de votos de cada partido en cada elección:
 
 ```{r}
-rural |> 
+rural_votos <- 
+  rural |> 
   summarise("votos" = sum(votos)/sum(votos_candidaturas),
-            .by = c(fecha, siglas)) |> 
-    ggplot() +
-  geom_point(aes(x = fecha, y = votos, color = siglas)) +
-  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas)) +
-  scale_color_discrete(name = "Partidos") +
+            .by = c(fecha, siglas)) #|> 
+#  group_by(fecha) |> 
+ # arrange(desc(votos), .by_group = TRUE) |> 
+#  ungroup()
+
+urbano_votos <-
+  urbano |> 
+  summarise("votos" = sum(votos)/sum(votos_candidaturas),
+            .by = c(fecha, siglas))
+```
+
+Gráficas:
+
+```{r}
+ggplot(rural_votos) +
+  geom_col(aes(x = siglas,
+               y = votos,
+               fill = siglas)) +
+  scale_fill_manual(name = "Partidos",
+                    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   scale_y_continuous(labels = function(y) y * 100) +
   labs(title = "Zona rural",
-       x = "Elecciones",
+       x = "Partidos",
        y = "% votos") +
-  theme_minimal()
+  theme_gg +
+  facet_wrap(~ fecha, scales = "free_y")
 
-urbano |> 
-  summarise("votos" = sum(votos)/sum(votos_candidaturas),
-            .by = c(fecha, siglas)) |> 
-  ggplot() +
-  geom_point(aes(x = fecha, y = votos, color = siglas)) +
-  geom_line(aes(x = fecha, y = votos, color = siglas, group = siglas)) +
-  scale_color_discrete(name = "Partidos") +
+ggplot(urbano_votos) +
+  geom_col(aes(x = fct_reorder(siglas, -votos),
+               y = votos,
+               fill = siglas)) +
+  scale_fill_manual(name = "Partidos",
+                    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   scale_y_continuous(labels = function(y) y * 100) +
   labs(title = "Zona urbana",
-       x = "Elecciones",
+       x = "Partidos",
        y = "% votos") +
-  theme_minimal()
+  theme_gg +
+  facet_wrap(~ fecha, scales = "free_y")
 ```
 
 ## Pregunta extra 1
