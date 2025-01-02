@@ -33,14 +33,15 @@ mapa_elecciones <-
                                                    fecha == "11-2019" ~ "Noviembre 2019")) |> 
               select("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos", "siglas"),
             by = c("periodo_electoral", "codigo_municipio", "codigo_provincia", "votos")) |> 
-  right_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
+  right_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun")) |> 
+  mutate(siglas = if_else(ine.ccaa.name == "País Vasco", "", siglas))
   
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Marzo 2008")) +
   geom_sf(aes(geometry = geometry, 
               fill = siglas)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
-  theme_linedraw() +
+  theme_gg +
   scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS")))
 
 ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2011")) +
@@ -49,4 +50,4 @@ ggplot(mapa_elecciones |> filter(periodo_electoral == "Noviembre 2011")) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
   theme_linedraw() +
-  scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS")))
+  scale_fill_manual(values = setNames(c(colores_partidos, "white"), c(siglas_interes, "OTROS", "")))
