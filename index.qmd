@@ -1,4 +1,3 @@
-<<<<<<< HEAD:index.qmd
 ---
 title: "Análisis datos electorales"
 author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel González Aramburu (DNI: 02576803-K) y Miguel Salmerón Vicente (DNI: 02769472-L)"
@@ -2348,4 +2347,4 @@ ggplot(data = election_participacion |> filter(participacion == "mayor") |> slic
        x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
        caption = "103 municipios")
 ```
->>>>>>> 4312ccaee9c59924bb4b62558e43669c0064fafb:grupal_FINAL.qmd
+
