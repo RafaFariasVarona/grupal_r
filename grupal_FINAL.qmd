@@ -1047,7 +1047,7 @@ mapa_encuestas("nov. 2019")
 
 De acuerdo con la Ley 45/2007, de Desarrollo Sostenible del Medio Rural, un municipio se clasifica como [**rural**]{style="color:red;"} si tiene [**menos de 30.000 habitantes**]{style="color:red;"} y una densidad poblacional [**menor de 100 habitantes/km2**]{style="color:red;"}.
 
-Información sobre la superficie de los municipios: <https://ssweb.seap.minhap.es/REL/frontend/inicio/index>
+Información sobre la superficie de los municipios: <https://ssweb.seap.minhap.es/REL/>
 
 ------------------------------------------------------------------------
 
