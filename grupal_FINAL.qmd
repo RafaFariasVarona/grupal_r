@@ -1046,9 +1046,6 @@ mapa_encuestas("abr. 2019")
 mapa_encuestas("nov. 2019")
 ```
 
-
-
-
 ------------------------------------------------------------------------
 
 ## ¿Cómo analizar la relación entre censo y voto? ¿Es cierto que determinados partidos ganan en las zonas rurales? {.center background-image="gradiente.jpg"}
@@ -1064,9 +1061,9 @@ Se considera [**zona rural**]{style="color:red;"} aquella que tiene [**menos de 
 #Dividir municipios en 2 grupos según el censo:
 municipios_superficie <- read_xls(path = "municipios_superficie.xls")
 
-superficie_tidy <- municipios_superficie |> distinct("DENOMINACION", .keep_all = TRUE)
+superficie_tidy <- municipios_superficie |> distinct(DENOMINACION, .keep_all = TRUE)
 
-election_superficie <- election_tidy |> left_join(municipios_superficie, by = c("municipio" = "DENOMINACION"))
+election_superficie <- election_tidy |> left_join(superficie_tidy, by = c("municipio" = "DENOMINACION"))
 
 rural <-
   election_superficie |> 
