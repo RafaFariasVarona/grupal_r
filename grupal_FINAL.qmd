@@ -1,6 +1,6 @@
 ---
 title: "Análisis datos electorales"
-author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
+author: "Rafael Farias Varona (DNI: 72546633-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -77,7 +77,7 @@ abbrev_tidy <- abbrev_tidy |>
     str_detect(denominacion, "CIUDADANOS-PARTIDO DE LA CIUDADAN[IÍ]A") ~ "CS",
     str_detect(denominacion, "PARTIDO NACIONALISTA VASCO") ~ "EAJ-PNV",
     str_detect(denominacion, "BLOQUE NACIONALISTA GALEGO") ~ "BNG",
-    str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA)\\b") ~ "PODEMOS",
+    str_detect(denominacion, "\\b(UNIDAS PODEMOS|UNIDOS PODEMOS|PODEMOS|IU|PODEM|EZKER BATUA|IZQUIERDA UNIDA)\\b") ~ "PODEMOS",
    str_detect(denominacion, "ESQUERRA REPUBLICANA DE CATALUNYA") ~ "ERC",
    str_detect(denominacion, "EUSKAL HERRIA BILDU|SORTU|EUSKO ALKARTASUNA|ARALAR|ALTERNATIBA") ~ "EH-BILDU",
    str_detect(denominacion, "VOX") ~ "VOX",
@@ -112,7 +112,7 @@ election_tidy <- election_tidy |>
 
 #se crea una columna con la fecha y se eliminan aquellas columnas que no interesan.
 election_tidy <- election_tidy |> 
-  mutate(fecha = paste0(mes, "-", anno)) |> 
+  mutate(fecha = paste0(anno, "-", mes)) |> 
   relocate(fecha, .after = mes) |> 
   select(-tipo_eleccion, -vuelta, - codigo_distrito_electoral)
 
@@ -289,7 +289,7 @@ mapa_elecciones <- mapa_elecciones |>
   
 ```
 
-. . . 
+. . .
 
 Partido político vencedor en las elecciones de Marzo 2008 por municipio
 
@@ -621,7 +621,7 @@ elect_surv |>
 
 ### Análisis para la estimación de la precisión de las encuestas electorales
 
-:::{.fragment}
+::: fragment
 Visualización de la estimación sobre la realidad
 
 ```{r, echo=FALSE}
@@ -673,12 +673,11 @@ ggplot(intencion_global) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
-
 :::
 
----
+------------------------------------------------------------------------
 
-:::{.fragment}
+::: fragment
 Comparación de la intención de voto global entendida como la proporción de todas las encuestas de todos los medios para cada periodo electoral.
 
 ```{r, echo=FALSE}
@@ -728,9 +727,9 @@ grafico1
 ```
 :::
 
----
+------------------------------------------------------------------------
 
-::: {.fragment}
+::: fragment
 Comparación de la precisión de los medios que tienen datos para todos los periodos electorales de manera global y para cada periodo.
 
 ```{r, echo=FALSE}
@@ -780,12 +779,11 @@ ggplot(medios_completos) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
-
 :::
 
----
+------------------------------------------------------------------------
 
-::: {.fragment}
+::: fragment
 Comparación de la precisión de las empresas encuestadoras que tienen datos para todos los periodos electorales de manera global y para cada periodo.
 
 ```{r, echo=FALSE}
@@ -835,12 +833,11 @@ ggplot(empresas_completos) +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
-
 :::
 
----
+------------------------------------------------------------------------
 
-::: {.fragment}
+::: fragment
 Visualizar si existe algún tipo de preferencia de los medios principales por algún partido en concreto.
 
 ```{r, echo=FALSE}
@@ -889,15 +886,13 @@ ggplot(medios_completos_2) +
   theme_gg +
   theme()
 ```
-
 :::
 
-
----
+------------------------------------------------------------------------
 
 ## Municipios que replican el resultado de las encuestas (estimación global excluyendo a otros)
 
----
+------------------------------------------------------------------------
 
 ```{r, echo=FALSE}
 # se añade la info de la estimción global de la intención de voto (como se calculó anteriormente) a  través de todas las encuestas y se añade a la info de la distribución de los votos
@@ -932,8 +927,6 @@ elect_surv_desag <-
   summarise(diferencia_media = mean(diferencia),
             .by = c("periodo_electoral", "codigo_provincia", "codigo_municipio"))
 ```
-
-
 
 ```{r, echo=FALSE}
 # se dibuja un gradiente en el mapa de españa en función de la diferencia media para cuantificar los manucipios que estarían replicando el resultado de las encuestas
@@ -991,7 +984,7 @@ mapa_encuestas <- function(periodo){
 mapa_encuestas("mar. 2008")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1002,7 +995,7 @@ mapa_encuestas("mar. 2008")
 mapa_encuestas("nov. 2011")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1013,7 +1006,7 @@ mapa_encuestas("nov. 2011")
 mapa_encuestas("dic. 2015")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1024,7 +1017,7 @@ mapa_encuestas("dic. 2015")
 mapa_encuestas("jun. 2016")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1035,7 +1028,7 @@ mapa_encuestas("jun. 2016")
 mapa_encuestas("abr. 2019")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1052,45 +1045,55 @@ mapa_encuestas("nov. 2019")
 
 . . .
 
-Se considera [**zona rural**]{style="color:red;"} aquella que tiene [**menos de 30.000 habitantes**]{style="color:red;"} y una densidad [**inferior a 100 habitantes por kilómetro cuadrado**]{style="color:red;"}
+De acuerdo con la Ley 45/2007, de Desarrollo Sostenible del Medio Rural, un municipio se clasifica como [**rural**]{style="color:red;"} si tiene [**menos de 30.000 habitantes**]{style="color:red;"} y una densidad poblacional [**menor de 100 habitantes/km2**]{style="color:red;"}.
+
+Información sobre la superficie de los municipios: <https://ssweb.seap.minhap.es/REL/frontend/inicio/index>
 
 ------------------------------------------------------------------------
 
 ```{r}
 #| include: false
-#Dividir municipios en 2 grupos según el censo:
-municipios_superficie <- read_xls(path = "municipios_superficie.xls")
+#Dividir municipios en 2 grupos según el censo y la densidad:
+municipios_superficie <- 
+  read_xls(path = "municipios_superficie.xls")
 
-superficie_tidy <- municipios_superficie |> distinct(DENOMINACION, .keep_all = TRUE)
+superficie_tidy <- 
+  municipios_superficie |> 
+  distinct(DENOMINACION, .keep_all = TRUE) |> 
+  select(DENOMINACION, SUPERFICIE)
 
-election_superficie <- election_tidy |> left_join(superficie_tidy, by = c("municipio" = "DENOMINACION"))
+election_superficie <- 
+  election_tidy |> 
+  left_join(superficie_tidy, by = c("municipio" = "DENOMINACION"))
 
 rural <-
   election_superficie |> 
-  filter(censo < 30000 & HABITANTES / SUPERFICIE < 100)
+  filter(censo < 30000 & censo / SUPERFICIE < 100)
 
 urbano <-
   election_superficie |> 
-  filter(censo >= 30000 & HABITANTES / SUPERFICIE >= 100)
+  filter(censo >= 30000 & censo / SUPERFICIE >= 100)
 ```
 
 Proporción de votos de cada partido en cada elección en [**zonas rurales**]{style="color:darkgreen;"}
 
 ```{r, echo=FALSE}
-rural |> 
+rural_votos <- 
+  rural |> 
   summarise("votos" = sum(votos)/sum(votos_candidaturas),
-            .by = c(fecha, siglas)) |> 
-  left_join(colores_df, by = "siglas") |> 
-  
-  ggplot() +
-  geom_point(aes(x = fecha, y = votos, color = color)) +
-  geom_line(aes(x = fecha, y = votos, color = color, group = siglas)) +
-  scale_color_identity(name = "Partidos", guide = "legend") +
-  scale_y_continuous(labels = function(y) y * 100) +
-  labs(x = "Elecciones",
-       y = "% votos") +
-  theme_gg_2
+            .by = c(fecha, siglas))
 
+ggplot(rural_votos) +
+  geom_col(aes(x = siglas,
+               y = votos,
+               fill = siglas)) +
+  scale_fill_manual(name = "Partidos",
+                    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  scale_y_continuous(labels = function(y) y * 100) +
+  labs(x = "Partidos",
+       y = "% votos") +
+  theme_gg +
+  facet_wrap(~ fecha, scales = "free_y")
 ```
 
 ------------------------------------------------------------------------
@@ -1098,22 +1101,25 @@ rural |>
 Proporción de votos de cada partido en cada elección en [**zonas urbanas**]{style="color:darkblue;"}
 
 ```{r, echo=FALSE}
-urbano |> 
+urbano_votos <-
+  urbano |> 
   summarise("votos" = sum(votos)/sum(votos_candidaturas),
-            .by = c(fecha, siglas)) |> 
-  left_join(colores_df, by = "siglas") |> 
-  
-  ggplot() +
-  geom_point(aes(x = fecha, y = votos, color = color)) +
-  geom_line(aes(x = fecha, y = votos, color = color, group = siglas)) +
-  scale_color_identity(name = "Partido", guide = "legend") +
+            .by = c(fecha, siglas))
+
+ggplot(urbano_votos) +
+  geom_col(aes(x = fct_reorder(siglas, -votos),
+               y = votos,
+               fill = siglas)) +
+  scale_fill_manual(name = "Partidos",
+                    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   scale_y_continuous(labels = function(y) y * 100) +
-  labs(x = "Elecciones",
+  labs(x = "Partidos",
        y = "% votos") +
-  theme_gg_2
+  theme_gg +
+  facet_wrap(~ fecha, scales = "free_y")
 ```
 
----
+------------------------------------------------------------------------
 
 ## ¿Qué partidos ganan en los municipios con menos participación? ¿Y en los municipios con más participación? {.center background-image="gradiente.jpg"}
 
