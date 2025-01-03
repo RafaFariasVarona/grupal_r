@@ -1075,7 +1075,7 @@ urbano <-
   filter(censo >= 30000 & censo / SUPERFICIE >= 100)
 ```
 
-Proporción de votos de cada partido en cada elección en [**zonas rurales**]{style="color:darkgreen;"}
+\% de votos de cada partido en cada elección en [**zonas rurales**]{style="color:darkgreen;"}
 
 ```{r, echo=FALSE}
 rural_votos <- 
@@ -1084,7 +1084,7 @@ rural_votos <-
             .by = c(fecha, siglas))
 
 ggplot(rural_votos) +
-  geom_col(aes(x = siglas,
+  geom_col(aes(x = fct_reorder(siglas, -votos),
                y = votos,
                fill = siglas)) +
   scale_fill_manual(name = "Partidos",
@@ -1098,7 +1098,7 @@ ggplot(rural_votos) +
 
 ------------------------------------------------------------------------
 
-Proporción de votos de cada partido en cada elección en [**zonas urbanas**]{style="color:darkblue;"}
+\% de votos de cada partido en cada elección en [**zonas urbanas**]{style="color:darkblue;"}
 
 ```{r, echo=FALSE}
 urbano_votos <-
