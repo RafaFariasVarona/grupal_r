@@ -1,6 +1,6 @@
 ---
 title: "Análisis datos electorales"
-author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel Gonzales Arambúru (DNI: 00000000-X) y Miguel Salmerón Vicente (DNI: 02769472-L)"
+author: "Rafael Farias Varona (DNI: 00000000-X), Sara García Bustos (DNI: 05439198-C), Manuel González Aramburu (DNI: 02576803-K) y Miguel Salmerón Vicente (DNI: 02769472-L)"
 format:
   revealjs:
     theme: [style.scss]
@@ -35,6 +35,7 @@ library(stringr)
 library(MetBrewer)
 library(mapSpain)
 library(sf)
+library(kableExtra)
 extrafont::loadfonts()
 ```
 
@@ -549,7 +550,7 @@ ggplot(data = election_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(sig
 
 ------------------------------------------------------------------------
 
-## ¿Cómo calibrar el error de las encuestas? {.center background-image="gradiente.jpg"}
+## Las encuestas {.center background-image="gradiente.jpg"}
 
 ------------------------------------------------------------------------
 
@@ -580,36 +581,42 @@ elect_surv <-
     by = c("anno", "mes", "siglas"))
 ```
 
-::: {.callout-important title="Error en encuestas"}
-identificador de encuestas: anno, mes, media, field_date_from
-:::
+### Calidad de los datos - Periodos electorales para los que se tiene dato de cada medio  {.custom-title .no-margin background-image="gradiente.jpg"}
 
-Se atiende primero a la calidad de los datos de las encuestas en cuestión a si existen en todos los periodos electorales
-
-```{r}
+```{r, echo = FALSE}
 elect_surv |> 
   count(media, date_elec) |> 
   arrange(date_elec, media) |> 
-  pivot_wider(values_from = n, id_cols = media, names_from = date_elec)
+  pivot_wider(values_from = n, id_cols = media, names_from = date_elec) |> 
+  kbl() |> 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = FALSE, 
+                font_size = 12,
+                html_font = "Times New Roman")
 ```
+
+
 
 ------------------------------------------------------------------------
 
-Se puede ver también que no se tiene representación de la intención de voto de todos los partidos para todos lo periodos electorales
+### Calidad de los datos - Periodos electorales para los que se tiene dato de cada partido
 
-```{r}
+```{r, echo = FALSE}
 elect_surv |> 
   count(siglas, date_elec) |> 
   arrange(date_elec, siglas) |> 
-  pivot_wider(values_from = n, id_cols = siglas, names_from = date_elec)
+  pivot_wider(values_from = n, id_cols = siglas, names_from = date_elec) |> 
+  kbl() |> 
+  kable_styling(bootstrap_options = c("striped", "hover", "condensed", "responsive"),
+                full_width = FALSE, 
+                font_size = 12,
+                html_font = "Times New Roman")
 ```
 
 ------------------------------------------------------------------------
 
-### Análisis para la estimación de la precisión de las encuestas electorales
+### Análisis de las encuestas - Estimación VS Realidad
 
-:::{.fragment}
-Visualización de la estimación sobre la realidad
 
 ```{r, echo=FALSE}
 intencion_global <-
@@ -634,6 +641,28 @@ elect_surv |>
 ```
 
 ```{r, echo=FALSE}
+tema_graphs <- 
+  theme_gg +
+  theme(title = element_text(size = 85),
+          plot.subtitle = element_text(size = 60),
+          legend.text = element_text(size = 40),
+          legend.title = element_text(size = 40),  
+          legend.key.height = unit(3, "cm"),    
+          legend.key.width = unit(1.5, "cm"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 40),
+        axis.text.x = element_text(size = 40),
+        axis.text.y = element_text(size = 40),
+        strip.text = element_text(size = 45))
+```
+
+
+```{r, echo=FALSE}
+#| fig-align: center
+#| fig-height: 30
+#| fig-width: 40
+#| out-width: 100%
+#| out-height: 100%
 ggplot(intencion_global) + 
   geom_col(aes(y = intencion, 
                x = siglas,
@@ -655,49 +684,32 @@ ggplot(intencion_global) +
   labs(title = "Porcentage de intención de voto estimada VS Porcentage de votos reales (sobreado)",
        fill = "Partidos",
        x = "Periodo electoral",
-       y = "Porcentage")+
-  theme_gg +
+       y = "Porcentage") +
+  tema_graphs +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
 
-:::
-
 ---
 
-:::{.fragment}
-Comparación de la intención de voto global entendida como la proporción de todas las encuestas de todos los medios para cada periodo electoral.
+### Análisis de las encuestas - Representación de las diferencias
 
 ```{r, echo=FALSE}
+#| fig-align: center
+#| fig-height: 30
+#| fig-width: 40
+#| out-width: 100%
+#| out-height: 100%
 # se construye una representación gráfica del error para cada partdio en cada periodo
 
-grafico1 <-
-  ggplot(intencion_global) + 
-           # group_by(date_elec) |> 
-           # mutate(siglas = reorder_within(x = siglas, by = diferencia, within = as.character(date_elec))) |> 
-           # ungroup()
-  # # crear un sombreado por detrás para diferencias cada periodo
-  # geom_rect(data = filter(intencion_global|> 
-  #                           mutate(grupo = case_when(date_elec == "2008-03-09" ~ 1, 
-  #                                                    date_elec == "2011-11-20" ~ 0,
-  #                                                    date_elec == "2015-12-20" ~ 1,  
-  #                                                    date_elec == "2016-06-26" ~ 0, 
-  #                                                    date_elec == "2019-04-28" ~ 1, 
-  #                                                    date_elec == "2019-11-10" ~ 0,
-  #                                                    TRUE ~ NA)), 
-  #                         grupo == 1),  # Solo fechas alternas
-  #           aes(xmin = as.character(date_elec[1]),
-  #               xmax = as.character(date_elec[length(intencion_global$date_elec)]),
-  #               ymin = -Inf, ymax = Inf),
-  #           fill = "gray90", alpha = 0.5) +
+ggplot(intencion_global) + 
+           
   geom_col(aes(y = diferencia, 
                x = as.character(periodo_electoral),
                fill = siglas),
            position = position_dodge(width = 0.9),
            width = 1,
-           alpha = 0.7) + # , width = 200
-           #scale_x_date(breaks = unique(intencion_global$date_elec)) +
-  #theme(axis.text.x = element_text(angle = 90)) +
+           alpha = 0.7) + 
   scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
@@ -705,20 +717,15 @@ grafico1 <-
        fill = "Partidos",
        x = "Periodo electoral",
        y = "Diferencia") +
-  theme_gg +
+  tema_graphs +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank()) 
-
-grafico1
-
-#plotly::ggplotly(grafico1)
 ```
-:::
 
 ---
 
-::: {.fragment}
-Comparación de la precisión de los medios que tienen datos para todos los periodos electorales de manera global y para cada periodo.
+### Análisis de las encuestas - Precisión de cada medio
+*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -748,6 +755,11 @@ medios_completos <-
 ```
 
 ```{r,echo=FALSE}
+#| fig-align: center
+#| fig-height: 30
+#| fig-width: 40
+#| out-width: 100%
+#| out-height: 100%
 # se visualiza
 ggplot(medios_completos) + 
   geom_col(aes(y = diferencia, 
@@ -762,18 +774,17 @@ ggplot(medios_completos) +
   labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada medio de comunicación",
        fill = "Medio",
        x = "Periodo electoral",
-       y = "Diferencia media")+
-  theme_gg +
+       y = "Diferencia media") +
+  tema_graphs +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
 
-:::
 
 ---
 
-::: {.fragment}
-Comparación de la precisión de las empresas encuestadoras que tienen datos para todos los periodos electorales de manera global y para cada periodo.
+### Análisis de las encuestas - Precisión de cada empresa encuestadora
+*Represadas únicamente las empresas para las que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -803,6 +814,11 @@ empresas_completos <-
 ```
 
 ```{r, echo=FALSE}
+#| fig-align: center
+#| fig-height: 30
+#| fig-width: 40
+#| out-width: 100%
+#| out-height: 100%
 # se visualiza
 ggplot(empresas_completos) + 
   geom_col(aes(y = diferencia, 
@@ -817,18 +833,16 @@ ggplot(empresas_completos) +
   labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada empresa de encuestas",
        fill = "Empresa",
        x = "Periodo electoral",
-       y = "Diferencia media")+
-  theme_gg +
+       y = "Diferencia media") +
+  tema_graphs +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
 ```
 
-:::
-
 ---
 
-::: {.fragment}
-Visualizar si existe algún tipo de preferencia de los medios principales por algún partido en concreto.
+### Análisis de las encuestas - Preferencia de los medios
+*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -858,6 +872,11 @@ medios_completos_2 <-
 ```
 
 ```{r, echo=FALSE}
+#| fig-align: center
+#| fig-height: 30
+#| fig-width: 40
+#| out-width: 100%
+#| out-height: 100%
 # se visualiza
 ggplot(medios_completos_2) + 
   geom_col(aes(y = intencion, 
@@ -874,17 +893,24 @@ ggplot(medios_completos_2) +
        x = "Periodo electoral",
        y = "Diferencia media")+
   theme_gg +
-  theme()
+  theme(title = element_text(size = 85),
+          plot.subtitle = element_text(size = 60),
+          legend.text = element_text(size = 40),
+          legend.title = element_text(size = 40),  
+          legend.key.height = unit(3, "cm"),    
+          legend.key.width = unit(1.5, "cm"),
+        axis.title.x = element_blank(),
+        axis.title.y = element_text(size = 40),
+        axis.text.x = element_text(size = 35),
+        axis.text.y = element_text(size = 35),
+        strip.text = element_text(size = 35))
 ```
 
-:::
+------------------------------------------------------------------------
 
+## Las encuestas - Municipios que replican el resultado de las encuestas {.center background-image="gradiente.jpg"}
 
----
-
-## Municipios que replican el resultado de las encuestas (estimación global excluyendo a otros)
-
----
+------------------------------------------------------------------------
 
 ```{r, echo=FALSE}
 # se añade la info de la estimción global de la intención de voto (como se calculó anteriormente) a  través de todas las encuestas y se añade a la info de la distribución de los votos
@@ -964,7 +990,7 @@ mapa_encuestas <- function(periodo){
           legend.text = element_text(size = 30),
           legend.title = element_text(size = 30),  
           legend.key.height = unit(3, "cm"),    
-          legend.key.width = unit(1.5, "cm") )
+          legend.key.width = unit(1.5, "cm"))
   
 }
 ```
