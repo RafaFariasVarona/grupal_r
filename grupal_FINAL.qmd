@@ -458,11 +458,17 @@ Si quedo primero en las elecciones el [**PSOE**]{style="color:red;"}
 
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
+:::
+
+::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
 
 ::: fragment
--   Extraemos las fechas en las que el PSOE ganó las elecciones
+-   Extraemos las fechas en las que el PSOE ganó las elecciones.
+:::
+
+::: fragment
 -   Filtramos las elecciones en las que el ganador fue el PSOE.
 :::
 
@@ -512,12 +518,18 @@ Si quedo primero en las elecciones el [**PP**]{style="color:blue;"}
 
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
+:::
+
+::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
 
 ::: fragment
--   Extraemos las fechas en las que el PP ganó las elecciones
--   Filtramos las elecciones en las que el ganador fue el PP.
+-   Extraemos las fechas en las que el PP ganó las elecciones.
+:::
+
+::: fragment
+-   Filtramos las elecciones en las que el ganador fue el PP
 :::
 
 . . .
@@ -1095,4 +1107,118 @@ urbano |>
   labs(x = "Elecciones",
        y = "% votos") +
   theme_gg_2
+```
+
+---
+
+## ¿Qué partidos ganan en los municipios con menos participación? ¿Y en los municipios con más participación? {.center background-image="gradiente.jpg"}
+
+. . .
+
+Calculamos la [**proporción**]{style="color:red;"} de participación dividiendo el [**censo**]{style="color:red;"} entre los [**votos totales**]{style="color:red;"} (**votos candidaturas**, **votos en blanco** y **votos nulos**)
+
+. . .
+
+La media es $\overline{x}=0.7505$ y la desviación estandar es $sd = 0.0727$
+
+```{r, echo = FALSE}
+election_participacion <- election_tidy |> 
+  mutate(votos_totales = votos_blancos + votos_nulos + votos_candidaturas) |> 
+  relocate(votos_totales, .after = censo) |> 
+  mutate(proporcion = votos_totales / censo) |> 
+  relocate(proporcion, .after = votos_totales)
+```
+
+------------------------------------------------------------------------
+
+Consideramos como municipios con menor participación aquellos cuya proporción sea $\leq 0.7505 - 3 * 0.0727$
+
+. . .
+
+```{r, echo = FALSE}
+municipio_menor <- election_participacion |> 
+  filter(proporcion <= mean(election_participacion$proporcion) - 3 * sd(election_participacion$proporcion)) |> 
+  pull(municipio)
+
+election_participacion <- election_participacion |> 
+  mutate(participacion = if_else(municipio %in% municipio_menor, "menor", "NA"))
+
+election_participacion |> filter(participacion == "menor") |> distinct(municipio)
+```
+
+. . .
+
+Obtenemos [**247**]{style="color:red;"} municipios con menor participación
+
+------------------------------------------------------------------------
+
+Y consideramos como municipios con mayor participación aquellos cuya proporción sea $\geq 0.7505 + 3 * 0.0727$
+
+. . .
+
+```{r, echo = FALSE}
+municipio_mayor <- election_participacion |> 
+  filter(proporcion >= mean(election_participacion$proporcion) + 3 * sd(election_participacion$proporcion)) |> 
+  pull(municipio)
+
+election_participacion <- election_participacion |> 
+  mutate(participacion = if_else(municipio %in% municipio_mayor, "mayor", participacion))
+
+election_participacion |> filter(participacion == "mayor") |> distinct(municipio)
+```
+
+. . .
+
+Y obtenemos [**103**]{style="color:red;"} municipios con mayor participación.
+
+------------------------------------------------------------------------
+
+```{r, echo = FALSE}
+mapa_participacion <- election_participacion |> 
+  select(codigo_ccaa, codigo_provincia, codigo_municipio, municipio, proporcion) |> 
+  distinct(municipio, .keep_all = TRUE) |> 
+  left_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
+```
+
+```{r, echo = FALSE}
+ggplot(mapa_participacion) +
+  geom_sf(aes(geometry = geometry, fill = proporcion), color = "grey90") +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0.7505) +
+  labs(fill = "Participación")
+```
+
+------------------------------------------------------------------------
+
+Los partidos ganadores en municipios con menor/mayor participación
+
+```{r, echo = FALSE}
+#| fig-align: center
+#| fig-height: 8
+#| fig-width: 12
+#| layout-ncol: 2
+#| column: page
+#| out-width: 100%
+#| out-height: 100%
+
+ggplot(data = election_participacion |> filter(participacion == "menor") |> slice_max(votos, by = c(municipio, fecha)), 
+       aes(x = siglas, fill = siglas)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  theme_gg +
+  labs(title = "Ganadores en municipios con menor participación",
+       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       caption = "247 municipios")
+
+ggplot(data = election_participacion |> filter(participacion == "mayor") |> slice_max(votos, by = c(municipio, fecha)), aes(x = siglas, fill = siglas)) +
+  geom_bar() +
+  scale_fill_manual(
+    values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  theme_gg_2 +
+  labs(title = "Ganadores en municipios con mayor participación",
+       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       caption = "103 municipios")
 ```
