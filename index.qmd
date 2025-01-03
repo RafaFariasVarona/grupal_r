@@ -659,7 +659,7 @@ tema_graphs <-
 
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 30
+#| fig-height: 20
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -681,7 +681,7 @@ ggplot(intencion_global) +
            alpha = 0.5)  +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
-  labs(title = "Porcentage de intención de voto estimada VS Porcentage de votos reales (sobreado)",
+  labs(title = "Porcentage de intención de voto estimada VS Porcentage de\nvotos reales (sobreado)",
        fill = "Partidos",
        x = "Periodo electoral",
        y = "Porcentage") +
@@ -696,7 +696,7 @@ ggplot(intencion_global) +
 
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 30
+#| fig-height: 20
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -756,7 +756,7 @@ medios_completos <-
 
 ```{r,echo=FALSE}
 #| fig-align: center
-#| fig-height: 30
+#| fig-height: 20
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -815,7 +815,7 @@ empresas_completos <-
 
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 30
+#| fig-height: 20
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -873,7 +873,7 @@ medios_completos_2 <-
 
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 30
+#| fig-height: 20
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -2075,7 +2075,8 @@ mapa_encuestas <- function(periodo){
   dataa <- 
     elect_surv_desag |> 
     filter(periodo_electoral == periodo) |> 
-    mutate(diferencia_media = if_else(diferencia_media <= quantile(diferencia_media, 0.9),
+    mutate(diferencia_media_clac = diferencia_media,
+           diferencia_media = if_else(diferencia_media <= quantile(diferencia_media, 0.9),
                                       diferencia_media, 
                                       NA))
   
@@ -2090,7 +2091,7 @@ mapa_encuestas <- function(periodo){
         axis.line = element_blank()) +
   labs(fill = "",
        title = glue("Diferencia media entre el resultado en cada municipio\ny estimación de la intención de voto para el periodo electoral de\n{periodo}."),
-       subtitle = paste0("Mediana global (q1, q3): ", round(median(dataa$diferencia_media, na.rm = T), digits = 2), " (", round(quantile(dataa$diferencia_media, 0.25, na.rm = T), digits = 2), ", ", round(quantile(dataa$diferencia_media, 0.75, na.rm = T), digits = 2), ")"),
+       subtitle = paste0("Mediana global (q1, q3): ", round(median(dataa$diferencia_media_clac, na.rm = T), digits = 2), " (", round(quantile(dataa$diferencia_media_clac, 0.25, na.rm = T), digits = 2), ", ", round(quantile(dataa$diferencia_media_clac, 0.75, na.rm = T), digits = 2), ")"),
        caption = "se eliminan el 10% de los datos más extremos") +
   scale_fill_gradient2(high= "#ffffff",
                         mid = "#f28aaa",
