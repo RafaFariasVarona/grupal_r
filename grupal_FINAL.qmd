@@ -734,7 +734,7 @@ ggplot(intencion_global) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada medio
-::: {.callout-note title="Análisis"}
+::: {.callout-note}
 Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
 :::
 
@@ -794,7 +794,7 @@ ggplot(medios_completos) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada empresa encuestadora
-::: {.callout-note title="Análisis"}
+::: {.callout-note}
 Represados únicamente las empresas para las que se tiene información de todos los periodos electorales.
 :::
 
@@ -854,7 +854,7 @@ ggplot(empresas_completos) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Preferencia de los medios
-::: {.callout-note title="Análisis"}
+::: {.callout-note}
 Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
 :::
 
