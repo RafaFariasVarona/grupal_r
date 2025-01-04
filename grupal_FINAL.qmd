@@ -734,8 +734,9 @@ ggplot(intencion_global) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada medio
-
-\*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
+::: {.callout-note title="Análisis"}
+Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
+:::
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -766,7 +767,7 @@ medios_completos <-
 
 ```{r,echo=FALSE}
 #| fig-align: center
-#| fig-height: 20
+#| fig-height: 15
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -793,8 +794,9 @@ ggplot(medios_completos) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada empresa encuestadora
-
-\*Represadas únicamente las empresas para las que se tiene información de todos los periodos electorales
+::: {.callout-note title="Análisis"}
+Represados únicamente las empresas para las que se tiene información de todos los periodos electorales.
+:::
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -825,7 +827,7 @@ empresas_completos <-
 
 ```{r, echo=FALSE}
 #| fig-align: center
-#| fig-height: 20
+#| fig-height: 15
 #| fig-width: 40
 #| out-width: 100%
 #| out-height: 100%
@@ -852,8 +854,10 @@ ggplot(empresas_completos) +
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Preferencia de los medios
+::: {.callout-note title="Análisis"}
+Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
+:::
 
-\*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -1123,7 +1127,7 @@ ggplot(municipios) +
               fill = categoría)) +
   geom_sf(data = Box) +
   geom_sf(data = Line) +
-  theme_gg
+  theme_gg_2
 ```
 
 ------------------------------------------------------------------------
