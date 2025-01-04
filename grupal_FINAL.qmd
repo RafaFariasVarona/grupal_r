@@ -594,7 +594,7 @@ elect_surv <-
     by = c("anno", "mes", "siglas"))
 ```
 
-### Calidad de los datos - Periodos electorales para los que se tiene dato de cada medio  {.custom-title .no-margin background-image="gradiente.jpg"}
+### Calidad de los datos - Periodos electorales para los que se tiene dato de cada medio {.custom-title .no-margin background-image="gradiente.jpg"}
 
 ```{r, echo = FALSE}
 elect_surv |> 
@@ -607,8 +607,6 @@ elect_surv |>
                 font_size = 12,
                 html_font = "Times New Roman")
 ```
-
-
 
 ------------------------------------------------------------------------
 
@@ -629,7 +627,6 @@ elect_surv |>
 ------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Estimación VS Realidad
-
 
 ```{r, echo=FALSE}
 intencion_global <-
@@ -669,7 +666,6 @@ tema_graphs <-
         strip.text = element_text(size = 45))
 ```
 
-
 ```{r, echo=FALSE}
 #| fig-align: center
 #| fig-height: 20
@@ -703,7 +699,7 @@ ggplot(intencion_global) +
         axis.ticks.x = element_blank())
 ```
 
----
+------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Representación de las diferencias
 
@@ -735,10 +731,11 @@ ggplot(intencion_global) +
         axis.ticks.x = element_blank()) 
 ```
 
----
+------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada medio
-*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
+
+\*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -793,11 +790,11 @@ ggplot(medios_completos) +
         axis.ticks.x = element_blank())
 ```
 
-
----
+------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Precisión de cada empresa encuestadora
-*Represadas únicamente las empresas para las que se tiene información de todos los periodos electorales
+
+\*Represadas únicamente las empresas para las que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -852,10 +849,11 @@ ggplot(empresas_completos) +
         axis.ticks.x = element_blank())
 ```
 
----
+------------------------------------------------------------------------
 
 ### Análisis de las encuestas - Preferencia de los medios
-*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
+
+\*Represados únicamente los medios para los que se tiene información de todos los periodos electorales
 
 ```{r, echo=FALSE}
 # seleccionar los medios que tienen información de todos los periodos electorales
@@ -959,8 +957,6 @@ elect_surv_desag <-
             .by = c("periodo_electoral", "codigo_provincia", "codigo_municipio"))
 ```
 
-
-
 ```{r, echo=FALSE}
 # se dibuja un gradiente en el mapa de españa en función de la diferencia media para cuantificar los manucipios que estarían replicando el resultado de las encuestas
 
@@ -1017,7 +1013,7 @@ mapa_encuestas <- function(periodo){
 mapa_encuestas("mar. 2008")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1028,7 +1024,7 @@ mapa_encuestas("mar. 2008")
 mapa_encuestas("nov. 2011")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1039,7 +1035,7 @@ mapa_encuestas("nov. 2011")
 mapa_encuestas("dic. 2015")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1050,7 +1046,7 @@ mapa_encuestas("dic. 2015")
 mapa_encuestas("jun. 2016")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1061,7 +1057,7 @@ mapa_encuestas("jun. 2016")
 mapa_encuestas("abr. 2019")
 ```
 
----
+------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -1105,8 +1101,32 @@ rural <-
 
 urbano <-
   election_superficie |> 
-  filter(censo >= 30000 & censo / SUPERFICIE >= 100)
+  filter(!(censo < 30000 & censo / SUPERFICIE < 100))
+
+municipios_rurales <- rural |> distinct(municipio)
+municipios_urbanos <- urbano |> distinct(municipio)
+rurales <- municipios_rurales$municipio
+urbanos <- municipios_urbanos$municipio
+
+municipios <-
+  munips |> 
+  mutate(name = str_replace_all(name, "\\s*/\\s*", "/")) |> 
+  mutate(categoría = case_when(name %in% rurales ~ "rural",
+                               name %in% urbanos ~ "urbano")) |> 
+  mutate(categoría = if_else(is.na(categoría), "rural", categoría)) |> 
+  mutate(categoría = if_else(name %in% c("Palma de Mallorca", "Calonge", "Castellón de la Plana/Castelló de la Plana", "Valencia", "Náquera", "Genovés"), "urbano", categoría))
 ```
+
+```{r, echo=FALSE}
+ggplot(municipios) +
+  geom_sf(aes(geometry = geometry, 
+              fill = categoría)) +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg
+```
+
+------------------------------------------------------------------------
 
 \% de votos de cada partido en cada elección en [**zonas rurales**]{style="color:darkgreen;"}
 
