@@ -278,8 +278,8 @@ mapa_elecciones <- mapa_elecciones |>
   left_join(election_tidy |> 
               mutate(periodo_electoral = case_when(fecha == "2008-03" ~ "Marzo 2008",
                                                    fecha == "2011-11" ~ "Noviembre 2011",
-                                                   fecha == "2015-11" ~ "Diciembre 2015", 
-                                                   fecha == "2016-05" ~ "Junio 2016", 
+                                                   fecha == "2015-12" ~ "Diciembre 2015", 
+                                                   fecha == "2016-06" ~ "Junio 2016", 
                                                    fecha == "2019-04" ~ "Abril 2019", 
                                                    fecha == "2019-11" ~ "Noviembre 2019"),
                      siglas = ifelse(!siglas %in% siglas_interes, "OTROS", siglas),
@@ -461,15 +461,12 @@ Si quedo primero en las elecciones el [**PSOE**]{style="color:red;"}
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
 :::
-
 ::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
-
 ::: fragment
 -   Extraemos las fechas en las que el PSOE ganó las elecciones.
 :::
-
 ::: fragment
 -   Filtramos las elecciones en las que el ganador fue el PSOE.
 :::
@@ -482,8 +479,7 @@ election_summary <- election_tidy |>
   summarise(total_voto = sum(votos, na.rm = TRUE), .by = c(fecha, siglas)) |> 
   arrange(desc(total_voto)) |> 
   mutate(rank = row_number(), .by = fecha) |> 
-  mutate(siglas = fct_reorder(siglas, rank)) |> 
-  mutate(fecha = factor(fecha, levels = c("03-2008", "11-2011", "12-2015", "06-2016", "04-2019", "11-2019")))
+  mutate(siglas = fct_reorder(siglas, rank)) 
 
 #Extraemos las fechas en las que el PSOE ganó las elecciones
 fecha_PSOE <- election_summary |> 
@@ -521,15 +517,12 @@ Si quedo primero en las elecciones el [**PP**]{style="color:blue;"}
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
 :::
-
 ::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
-
 ::: fragment
 -   Extraemos las fechas en las que el PP ganó las elecciones.
 :::
-
 ::: fragment
 -   Filtramos las elecciones en las que el ganador fue el PP
 :::
@@ -690,10 +683,10 @@ ggplot(intencion_global) +
            alpha = 0.5)  +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
-  labs(title = "Porcentage de intención de voto estimada VS Porcentage de\nvotos reales (sobreado)",
+  labs(title = "Porcentaje de intención de voto estimada VS Porcentaje de\nvotos reales (sombreado)",
        fill = "Partidos",
        x = "Periodo electoral",
-       y = "Porcentage") +
+       y = "Porcentaje") +
   tema_graphs +
   theme(axis.text.x = element_blank(),
         axis.ticks.x = element_blank())
@@ -722,7 +715,7 @@ ggplot(intencion_global) +
   scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
-  labs(title = "Diferencia entre intención de voto según encuestas y porcentage de votos reales",
+  labs(title = "Diferencia entre intención de voto según encuestas y porcentaje de votos reales",
        fill = "Partidos",
        x = "Periodo electoral",
        y = "Diferencia") +
@@ -735,7 +728,7 @@ ggplot(intencion_global) +
 
 ### Análisis de las encuestas - Precisión de cada medio
 ::: {.callout-note}
-Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
+Representados únicamente los medios para los que se tiene información de todos los periodos electorales.
 :::
 
 ```{r, echo=FALSE}
@@ -759,7 +752,7 @@ medios_completos <-
   mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
 # se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
   mutate(diferencia = intencion - porc_votos) |> 
-# se calcula la diferencia entre intención y porcentage de votos media de cada medio con la diferencia calculada 
+# se calcula la diferencia entre intención y porcentaje de votos media de cada medio con la diferencia calculada 
   summarise(diferencia = mean(diferencia), .by = c("media", "date_elec")) |> 
 # se modifica el nombre de cada periodo para que quede más elegante
   mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
@@ -782,7 +775,7 @@ ggplot(medios_completos) +
   scale_fill_met_d("Veronese") +
   facet_wrap(~periodo_electoral,
             scales = "free") +
-  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada medio de comunicación",
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentaje de votos real de cada medio de comunicación",
        fill = "Medio",
        x = "Periodo electoral",
        y = "Diferencia media") +
@@ -795,7 +788,7 @@ ggplot(medios_completos) +
 
 ### Análisis de las encuestas - Precisión de cada empresa encuestadora
 ::: {.callout-note}
-Represados únicamente las empresas para las que se tiene información de todos los periodos electorales.
+Representados únicamente las empresas para las que se tiene información de todos los periodos electorales.
 :::
 
 ```{r, echo=FALSE}
@@ -819,7 +812,7 @@ empresas_completos <-
   mutate(porc_votos = if_else(is.na(porc_votos), 0, porc_votos)) |> 
 # se calcula la diferencia entre el porcentaje estimado y el porcentaje obtenido como estimador de la precisión de las encuestas
   mutate(diferencia = intencion - porc_votos) |> 
-# se calcula la diferencia entre intención y porcentage de votos media de cada medio con la diferencia calculada 
+# se calcula la diferencia entre intención y porcentaje de votos media de cada medio con la diferencia calculada 
   summarise(diferencia = mean(diferencia), .by = c("pollster", "date_elec")) |> 
 # se modifica el nombre de cada periodo para que quede más elegante
   mutate(periodo_electoral = fct_reorder(format(date_elec, "%b %Y"), date_elec))
@@ -842,7 +835,7 @@ ggplot(empresas_completos) +
   scale_fill_met_d("Veronese") +
   facet_wrap(~periodo_electoral,
             scales = "free") +
-  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada empresa de encuestas",
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentaje de votos real de cada empresa de encuestas",
        fill = "Empresa",
        x = "Periodo electoral",
        y = "Diferencia media") +
@@ -855,7 +848,7 @@ ggplot(empresas_completos) +
 
 ### Análisis de las encuestas - Preferencia de los medios
 ::: {.callout-note}
-Represados únicamente los medios para los que se tiene información de todos los periodos electorales.
+Representados únicamente los medios para los que se tiene información de todos los periodos electorales.
 :::
 
 
@@ -903,7 +896,7 @@ ggplot(medios_completos_2) +
   scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   facet_wrap(~media,
             scales = "free") +
-  labs(title = "Diferencia media entre intención de voto estimada y \nporcentege de votos real de cada empresa de encuestas",
+  labs(title = "Diferencia media entre intención de voto estimada y \nporcentaje de votos real de cada empresa de encuestas",
        fill = "Partido",
        x = "Periodo electoral",
        y = "Diferencia media")+
@@ -994,9 +987,9 @@ mapa_encuestas <- function(periodo){
        title = glue("Diferencia media entre el resultado en cada municipio\ny estimación de la intención de voto para el periodo electoral de\n{periodo}."),
        subtitle = paste0("Mediana global (q1, q3): ", round(median(dataa$diferencia_media, na.rm = T), digits = 2), " (", round(quantile(dataa$diferencia_media, 0.25, na.rm = T), digits = 2), ", ", round(quantile(dataa$diferencia_media, 0.75, na.rm = T), digits = 2), ")"),
        caption = "se eliminan el 10% de los datos más extremos") +
-  scale_fill_gradient2(high= "#ffffff",
+  scale_fill_gradient2(low= "#ffffff",
                         mid = "#f28aaa",
-                        low = "#9a133d") +
+                        high = "#9a133d") +
     theme(plot.caption = element_text(size = 50),
           title = element_text(size = 85),
           plot.subtitle = element_text(size = 60),
@@ -1150,7 +1143,8 @@ ggplot(rural_votos) +
   labs(x = "Partidos",
        y = "% votos") +
   theme_gg +
-  facet_wrap(~ fecha, scales = "free_y")
+  facet_wrap(~ fecha, scales = "free_y") +
+  theme(axis.text.x = element_blank())
 ```
 
 ------------------------------------------------------------------------
@@ -1173,7 +1167,8 @@ ggplot(urbano_votos) +
   labs(x = "Partidos",
        y = "% votos") +
   theme_gg +
-  facet_wrap(~ fecha, scales = "free_y")
+  facet_wrap(~ fecha, scales = "free_y") +
+  theme(axis.text.x = element_blank())
 ```
 
 ------------------------------------------------------------------------
