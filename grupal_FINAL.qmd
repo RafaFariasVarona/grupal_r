@@ -683,13 +683,14 @@ ggplot(intencion_global) +
            alpha = 0.5)  +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
-  labs(title = "Porcentaje de intención de voto estimada VS Porcentaje de\nvotos reales (sombreado)",
+  labs(title = 'Porcentaje de intención de voto estimada VS <span style="color: #acacac;">Porcentaje de</span> <br><span style="color: #bbbbbb;">votos reales</span>',
        fill = "Partidos",
        x = "Periodo electoral",
        y = "Porcentaje") +
   tema_graphs +
   theme(axis.text.x = element_blank(),
-        axis.ticks.x = element_blank())
+        axis.ticks.x = element_blank(),
+        plot.title = ggtext::element_textbox())
 ```
 
 ------------------------------------------------------------------------
