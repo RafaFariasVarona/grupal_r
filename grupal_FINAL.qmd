@@ -461,28 +461,22 @@ Si quedo primero en las elecciones el [**PSOE**]{style="color:red;"}
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
 :::
-
 ::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
-
 ::: fragment
 -   Extraemos las fechas en las que el PSOE ganó las elecciones.
 :::
-
 ::: fragment
 -   Filtramos las elecciones en las que el ganador fue el PSOE.
 :::
-
-. . .
 
 ```{r, echo=FALSE}
 #Creamos un resumen de la suma de los votos por partido. Ordenamos los partidos en función de su posición en las elecciones.
 election_summary <- election_tidy |>
   summarise(total_voto = sum(votos, na.rm = TRUE), .by = c(fecha, siglas)) |> 
   arrange(desc(total_voto)) |> 
-  mutate(rank = row_number(), .by = fecha) |> 
-  mutate(siglas = fct_reorder(siglas, rank)) 
+  mutate(rank = row_number(), .by = fecha)
 
 #Extraemos las fechas en las que el PSOE ganó las elecciones
 fecha_PSOE <- election_summary |> 
@@ -494,11 +488,11 @@ election_PSOE <- election_summary |>
   filter(fecha %in% fecha_PSOE)
 ```
 
-```{r, echo= FALSE}
-#| fig-align: center
-#| fig-height: 4
+---
 
-ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
+```{r, echo= FALSE}
+ggplot(data = election_PSOE, aes(x = fct_reorder(siglas, rank, .fun = "max"), y = total_voto, fill = siglas,
+                                 alpha = if_else(rank == 2, "Si", "No"))) +
   geom_col(position = "dodge2") +
   scale_fill_manual(
     values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
@@ -508,9 +502,10 @@ ggplot(data = election_PSOE, aes(x = fecha, y = total_voto, fill = fct_reorder(s
     labels = scales::comma_format()) +
   guides(alpha = "none") +
   theme_gg +
-  theme(axis.text.x = element_text(angle = 0)) +
+  facet_wrap(~ fecha) +
+  theme(axis.text.x = element_blank()) +
   labs(title = "Distribución de los votos cuando el PSOE fue el primero",
-       x = "Fecha", y = "Total de votos", fill = "Partido")
+       x = "Partido", y = "Total de votos", fill = "Partido")
 ```
 
 ------------------------------------------------------------------------
@@ -520,20 +515,17 @@ Si quedo primero en las elecciones el [**PP**]{style="color:blue;"}
 ::: fragment
 -   Creamos un resumen de la suma de los votos por partido
 :::
-
 ::: fragment
 -   Ordenamos los partidos en función de su posición en las elecciones.
 :::
-
 ::: fragment
 -   Extraemos las fechas en las que el PP ganó las elecciones.
 :::
-
 ::: fragment
 -   Filtramos las elecciones en las que el ganador fue el PP
 :::
 
-. . .
+---
 
 ```{r, echo = FALSE}
 #| fig-align: center
@@ -545,19 +537,21 @@ fecha_PP <- election_summary |>
 election_PP <- election_summary |> 
   filter(fecha %in% fecha_PP)
 
-ggplot(data = election_PP, aes(x = fecha, y = total_voto, fill = fct_reorder(siglas, rank, .fun = "max"), alpha = if_else(rank == 2, "Si", "No"))) +
+ggplot(data = election_PP, aes(x = fct_reorder(siglas, rank), y = total_voto, fill = siglas,
+                                 alpha = if_else(rank == 2, "Si", "No"))) +
   geom_col(position = "dodge2") +
   scale_fill_manual(
     values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   scale_alpha_manual(values = c("Si" = 1, "No" = 0.15)) +
   scale_y_continuous(
-    breaks = seq(0, max(election_PP$total_voto), by = 1000000), 
+    breaks = seq(0, max(election_PP$total_voto), by = 2000000), 
     labels = scales::comma_format()) +
   guides(alpha = "none") +
   theme_gg +
-  theme(axis.text.x = element_text(angle = 0)) +
+  facet_wrap(~ fecha) +
+  theme(axis.text.x = element_blank()) +
   labs(title = "Distribución de los votos cuando el PP fue el primero",
-       x = "Fecha", y = "Total de votos", fill = "Partido")
+       x = "Partido", y = "Total de votos", fill = "Partido")
 ```
 
 ------------------------------------------------------------------------
@@ -1197,11 +1191,7 @@ ggplot(urbano_votos) +
 
 . . .
 
-Calculamos la [**proporción**]{style="color:red;"} de participación dividiendo el [**censo**]{style="color:red;"} entre los [**votos totales**]{style="color:red;"} (**votos candidaturas**, **votos en blanco** y **votos nulos**)
-
-. . .
-
-La media es $\overline{x}=0.7505$ y la desviación estandar es $sd = 0.0727$
+Calculamos la [**proporción**]{style="color:red;"} de participación dividiendo los [**votos totales**]{style="color:red;"} (**votos candidaturas**, **votos en blanco** y **votos nulos**) entre el [**censo**]{style="color:red;"}.
 
 ```{r, echo = FALSE}
 election_participacion <- election_tidy |> 
@@ -1210,6 +1200,29 @@ election_participacion <- election_tidy |>
   mutate(proporcion = votos_totales / censo) |> 
   relocate(proporcion, .after = votos_totales)
 ```
+
+---
+
+```{r, echo = FALSE}
+mapa_participacion <- election_participacion |> 
+  select(codigo_ccaa, codigo_provincia, codigo_municipio, municipio, proporcion) |> 
+  distinct(municipio, .keep_all = TRUE) |> 
+  left_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
+```
+
+```{r, echo = FALSE}
+ggplot(mapa_participacion) +
+  geom_sf(aes(geometry = geometry, fill = proporcion), color = "grey90") +
+  geom_sf(data = Box) +
+  geom_sf(data = Line) +
+  theme_gg_2 +
+  scale_fill_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0.7505) +
+  labs(title = "Distribución de la participación electoral en España", fill = "Participación")
+```
+
+. . .
+
+La media es $\overline{x}=0.7505$ y la desviación estandar es $sd = 0.0727$
 
 ------------------------------------------------------------------------
 
@@ -1256,51 +1269,37 @@ Y obtenemos [**103**]{style="color:red;"} municipios con mayor participación.
 ------------------------------------------------------------------------
 
 ```{r, echo = FALSE}
-mapa_participacion <- election_participacion |> 
-  select(codigo_ccaa, codigo_provincia, codigo_municipio, municipio, proporcion) |> 
-  distinct(municipio, .keep_all = TRUE) |> 
-  left_join(munips, by = c("codigo_provincia" = "cpro", "codigo_municipio" = "cmun"))
-```
-
-```{r, echo = FALSE}
-ggplot(mapa_participacion) +
-  geom_sf(aes(geometry = geometry, fill = proporcion), color = "grey90") +
-  geom_sf(data = Box) +
-  geom_sf(data = Line) +
-  theme_gg_2 +
-  scale_fill_gradient2(low = "darkblue", mid = "white", high = "darkred", midpoint = 0.7505) +
-  labs(fill = "Participación")
-```
-
-------------------------------------------------------------------------
-
-Los partidos ganadores en municipios con menor/mayor participación
-
-```{r, echo = FALSE}
-#| fig-align: center
-#| fig-height: 8
-#| fig-width: 12
-#| layout-ncol: 2
-#| column: page
-#| out-width: 100%
-#| out-height: 100%
-
-ggplot(data = election_participacion |> filter(participacion == "menor") |> slice_max(votos, by = c(municipio, fecha)), 
+ggplot(data = election_participacion |> filter(participacion == "menor") |> 
+         slice_max(votos, by = c(municipio, fecha)), 
        aes(x = siglas, fill = siglas)) +
   geom_bar() +
   scale_fill_manual(
     values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
+  facet_wrap(~ fecha) +
   theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank()) +
   labs(title = "Ganadores en municipios con menor participación",
-       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       y = "Número de victorias", fill = "Partidos",
        caption = "247 municipios")
+```
 
+---
+
+```{r, echo = FALSE}
 ggplot(data = election_participacion |> filter(participacion == "mayor") |> slice_max(votos, by = c(municipio, fecha)), aes(x = siglas, fill = siglas)) +
   geom_bar() +
   scale_fill_manual(
     values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
-  theme_gg_2 +
+  facet_wrap(~ fecha) +
+  theme_gg +
+  theme(axis.text.x = element_blank(),
+        axis.title.x = element_blank()) +
   labs(title = "Ganadores en municipios con mayor participación",
-       x = "Ganadores", y = "Número de victorias", fill = "Partidos políticos",
+       x = "Partidos", y = "Número de victorias", fill = "Partidos",
        caption = "103 municipios")
 ```
+
+---
+
+## Muchas gracias por vuestra atención {.center background-image="gradiente.jpg"}
