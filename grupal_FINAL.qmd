@@ -716,7 +716,7 @@ ggplot(intencion_global) +
   scale_fill_manual(values = setNames(colores_partidos, c(siglas_interes, "OTROS"))) +
   facet_wrap(~periodo_electoral,
             scales = "free") + 
-  labs(title = "Diferencia entre intención de voto según encuestas y porcentaje de votos reales",
+  labs(title = "Diferencia entre intención de voto según encuestas y\nporcentaje de votos reales",
        fill = "Partidos",
        x = "Periodo electoral",
        y = "Diferencia") +
