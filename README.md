@@ -77,4 +77,6 @@ Deberás responder obligatoriamente a
 - ¿Cómo calibrar el error de las encuestas (recordemos que las encuestas son de intención de voto a nivel nacional)?
 - ¿Cómo analizar la relación entre censo y voto? ¿Es cierto que determinados partidos ganan en las zonas rurales?
 
-Debes incluir al menos 2 preguntas "originales" más que consideres interesantes de responder utilizando los datos para distinguirte del resto
+Preguntas extra:
+- ¿Qué municipios replican el resultado de las encuestas?
+- ¿Qué partidos ganan en los municipios con menos participación? ¿Y en los municipios con más participación?
